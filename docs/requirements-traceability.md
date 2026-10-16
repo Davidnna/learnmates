@@ -8,7 +8,7 @@ This checklist records the intended scope of the current prototype. It does not 
 | FR-02 | A registered student can log in and log out | `/login`, `/logout`, Flask-Login | Login page/CSRF smoke tests exist; full browser workflow must be run locally |
 | FR-03 | Students can upload PDF/TXT notes within the configured size limit | `/materials`, text extraction | Implemented; manually test valid, invalid, oversized, empty-text and scanned PDFs |
 | FR-04 | Students can view and delete only their own notes | `/materials`, `/materials/<id>/delete` | Ownership checks should be verified with two separate accounts |
-| FR-05 | Students can ask the tutor questions | `/chat`, optional Ollama/OpenAI provider | Implemented; live AI requires a running Ollama model or a valid hosted-provider key/network; test offline and API-failure paths |
+| FR-05 | Students can ask the tutor questions | `/chat`, Groq hosted provider or optional Ollama/OpenAI provider | Implemented; live AI requires a running Ollama model or a valid hosted-provider key/network; test offline and API-failure paths |
 | FR-06 | Tutor can retrieve relevant passages from a selected note | `retrieve_passages` and `/chat` | Retrieval unit tests exist; relevance quality needs representative course notes |
 | FR-07 | Students can generate summaries and flashcards | `/study-tools` | Implemented with fallback; validate output quality with multiple source types |
 | FR-08 | Students can generate, submit, score and review quizzes | `/quiz`, quiz generation helpers | Quiz logic tests exist; manually test a complete session and expired session |
@@ -21,7 +21,7 @@ This checklist records the intended scope of the current prototype. It does not 
 | FR-15 | Navigation remains usable on narrow screens and by keyboard | `templates/base.html`, `static/style.css` | Mobile disclosure button exposes `aria-expanded`, closes with Escape, and is covered by static regression checks; verify in a real browser |
 | FR-16 | Students can use a free local language model without an OpenAI key | `ai_response`, `.env.example` | Ollama-compatible chat completion path added; requires installing Ollama/model and running an end-to-end request locally |
 | FR-17 | Visitors can read product context without registering | `/about`, `/features`, `/how-it-works`, `/faq`, `/privacy` | Public routes and template parsing are checked automatically; full Flask route smoke tests require installed dependencies |
-| FR-18 | Temporary Gemini outages are retried and optional fallback model can be configured | `_gemini_chat_completion`, `ai_response`, `.env.example` | Focused mock tests cover temporary 503 retry and immediate non-transient 404 failure; live provider behavior must be tested in deployment |
+| FR-18 | Temporary AI provider outages are retried and optional Groq fallback model can be configured | `_chat_completion_with_retries`, `ai_response`, `.env.example` | Focused mock tests cover temporary 503 retry and immediate non-transient 404 failure; live provider behavior must be tested in deployment |
 
 ## Important limitations and acceptance gates
 

@@ -5,7 +5,7 @@ This configuration is intended for a small academic pilot, not a high-availabili
 ## Stack
 - Web app: Render free web service (may sleep after inactivity; local disk is ephemeral).
 - Database: Neon free PostgreSQL (create a project and copy its pooled or direct connection string as recommended by Neon; use SSL).
-- AI: Gemini API free tier, subject to the chosen model's current availability and quotas.
+- AI: Groq API free tier for development/pilot use, subject to model availability and rate limits.
 - Local development: SQLite and Ollama remain available.
 
 ## 1. Create a Neon PostgreSQL database
@@ -14,17 +14,17 @@ This configuration is intended for a small academic pilot, not a high-availabili
 3. In Render, set `DATABASE_URL` to that full connection string. Keep it private. The app converts `postgresql://`/`postgres://` to SQLAlchemy's `postgresql+psycopg://` driver URL automatically.
 4. Do not use Render's own free Postgres for permanent project data: its free database currently expires 30 days after creation.
 
-## 2. Create a Gemini API key
-1. Create a key in Google AI Studio and review the current free-tier quotas and data-use terms.
-2. In Render environment variables, set `GEMINI_API_KEY` to the key. Do not put it in Git, HTML, JavaScript, screenshots, or a public issue.
-3. Set `AI_PROVIDER=gemini` and `GEMINI_MODEL` to a model currently available to your API key. The example file uses `gemini-3.8-flash` based on the model recommendation returned in the supplied deployment logs; confirm availability in your Google AI Studio project before relying on it. Optionally set `GEMINI_FALLBACK_MODEL` to a second model verified for your key.
-4. Free-tier requests may be used to improve provider products. Do not send sensitive personal, assessment, or confidential institutional information unless the applicable terms and institutional approval allow it.
+## 2. Create a Groq API key
+1. Create an account and API key in [Groq Console](https://console.groq.com/keys). Review the current free-plan limits and data-use terms.
+2. In Render environment variables, set `GROQ_API_KEY` to the key. Do not put it in Git, HTML, JavaScript, screenshots, or a public issue.
+3. Set `AI_PROVIDER=groq` and `GROQ_MODEL=openai/gpt-oss-20b`. Confirm the model remains available to your Groq account in the [supported models list](https://console.groq.com/docs/models). Optionally set `GROQ_FALLBACK_MODEL` only to another model you have verified in Groq Console.
+4. Free-plan limits can be reached and can change. Do not send sensitive personal, assessment, or confidential institutional information unless the applicable terms and institutional approval allow it.
 
 ## 3. Deploy to Render
 1. Push this folder to a Git repository. Never commit `.env`, real keys, a local database, or student data.
 2. In Render, choose **New > Web Service** and connect the `learnmates` GitHub repository. Configure the service directly in the Render dashboard; this project intentionally does not use a Blueprint file.
 3. Confirm the service is on the Free plan.
-4. Set `DATABASE_URL`, `GEMINI_API_KEY`, and a strong `SECRET_KEY` in the Render dashboard. Keep all secrets out of GitHub.
+4. Set `DATABASE_URL`, `GROQ_API_KEY`, and a strong `SECRET_KEY` in the Render dashboard. Keep all secrets out of GitHub.
 5. Deploy and wait for `/health` to return `{"status":"ok"}`.
 6. Register a test account; test chat, quiz generation, uploads, logout/login, and saved history after a redeploy.
 
@@ -47,10 +47,10 @@ The app stores extracted document text in PostgreSQL, but the original uploaded 
 |---|---|
 | `SECRET_KEY` | A long random secret set in Render; keep private |
 | `DATABASE_URL` | Neon PostgreSQL connection string |
-| `AI_PROVIDER` | `gemini` |
-| `GEMINI_API_KEY` | Secret from Google AI Studio |
-| `GEMINI_MODEL` | A model verified in your Google AI Studio project (example: `gemini-3.8-flash`) |
-| `GEMINI_FALLBACK_MODEL` | Optional second verified model; leave blank if not configured |
+| `AI_PROVIDER` | `groq` |
+| `GROQ_API_KEY` | Secret from Groq Console |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` (verify availability) |
+| `GROQ_FALLBACK_MODEL` | Optional second model verified in Groq Console; leave blank otherwise |
 | `AI_TIMEOUT_SECONDS` | `60` |
 | `COOKIE_SECURE` | `true` |
 | `FLASK_DEBUG` | `false` |

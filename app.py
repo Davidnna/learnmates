@@ -223,8 +223,8 @@ def retrieve_passages(text, question, limit=5):
              "score": round(item[0], 3), "coverage": round(item[2], 3)}
             for item in scored[:limit] if item[2] >= 0.12]
 
-def _gemini_chat_completion(client, model, messages, temperature=0.3, attempts=3):
-    """Call Gemini with bounded retries for temporary provider failures."""
+def _chat_completion_with_retries(client, model, messages, temperature=0.3, attempts=3):
+    """Call an OpenAI-compatible chat API with bounded retries for transient failures."""
     from openai import APIConnectionError, APIStatusError, APITimeoutError
 
     retryable_statuses = {429, 500, 502, 503, 504}
@@ -251,7 +251,7 @@ def _gemini_chat_completion(client, model, messages, temperature=0.3, attempts=3
 
 def ai_response(prompt, instructions):
     """Generate a response with local Ollama or a hosted provider, with honest fallbacks."""
-    provider = os.getenv("AI_PROVIDER", "auto").strip().lower()
+    provider = os.getenv("AI_PROVIDER", "groq").strip().lower()
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
 
     if provider == "ollama":
@@ -279,6 +279,53 @@ def ai_response(prompt, instructions):
                     "`ollama list` and make sure the configured model is installed. "
                     "You can also check OLLAMA_BASE_URL and OLLAMA_MODEL in your .env file.")
 
+    if provider == "groq":
+        api_key = os.getenv("GROQ_API_KEY", "").strip()
+        if not api_key:
+            return "Groq mode is selected, but GROQ_API_KEY is missing from the hosting environment."
+        try:
+            from openai import OpenAI, APIConnectionError, APIStatusError, APITimeoutError
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.groq.com/openai/v1",
+                timeout=float(os.getenv("AI_TIMEOUT_SECONDS", "60")),
+                max_retries=0,
+            )
+            model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b").strip()
+            fallback_model = os.getenv("GROQ_FALLBACK_MODEL", "").strip()
+            # GPT-OSS guidance recommends placing instructions in the user message
+            # rather than relying on a system role.
+            messages = [{
+                "role": "user",
+                "content": f"Instructions:\n{instructions}\n\nStudent request:\n{prompt}",
+            }]
+            try:
+                response = _chat_completion_with_retries(client, model, messages)
+            except (APIStatusError, APIConnectionError, APITimeoutError) as primary_error:
+                is_transient = isinstance(primary_error, (APIConnectionError, APITimeoutError)) or getattr(primary_error, "status_code", None) in {429, 500, 502, 503, 504}
+                if not (is_transient and fallback_model and fallback_model != model):
+                    raise
+                app.logger.warning("Groq primary model %s failed temporarily; trying configured fallback model %s", model, fallback_model)
+                try:
+                    response = _chat_completion_with_retries(client, fallback_model, messages, attempts=2)
+                except Exception:
+                    app.logger.exception("Groq fallback model request failed")
+                    raise primary_error
+            content = response.choices[0].message.content if response.choices else ""
+            return (content or "The AI provider returned an empty response. Please try again.").strip()
+        except Exception as exc:
+            app.logger.exception("Groq API request failed after retry handling")
+            try:
+                from openai import APIConnectionError, APIStatusError, APITimeoutError
+                temporary = isinstance(exc, (APIConnectionError, APITimeoutError)) or (isinstance(exc, APIStatusError) and exc.status_code in {429, 500, 502, 503, 504})
+            except Exception:
+                temporary = False
+            if temporary:
+                return ("The AI service is temporarily busy or its usage limit may have been reached. "
+                        "Please wait a moment and try again. Your account and saved study notes have not been deleted.")
+            return ("The AI service could not complete this request. Check GROQ_API_KEY and GROQ_MODEL in Render, "
+                    "and confirm the selected model is available to your Groq account.")
+
     if provider == "gemini":
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
         if not api_key:
@@ -298,14 +345,14 @@ def ai_response(prompt, instructions):
                 {"role": "user", "content": prompt},
             ]
             try:
-                response = _gemini_chat_completion(client, model, messages)
+                response = _chat_completion_with_retries(client, model, messages)
             except (APIStatusError, APIConnectionError, APITimeoutError) as primary_error:
                 is_transient = isinstance(primary_error, (APIConnectionError, APITimeoutError)) or getattr(primary_error, "status_code", None) in {429, 500, 502, 503, 504}
                 if not (is_transient and fallback_model and fallback_model != model):
                     raise
                 app.logger.warning("Gemini primary model %s failed temporarily; trying configured fallback model %s", model, fallback_model)
                 try:
-                    response = _gemini_chat_completion(client, fallback_model, messages, attempts=2)
+                    response = _chat_completion_with_retries(client, fallback_model, messages, attempts=2)
                 except Exception:
                     app.logger.exception("Gemini fallback model request failed")
                     raise primary_error
@@ -339,21 +386,23 @@ def ai_response(prompt, instructions):
             app.logger.exception("OpenAI request failed")
             return "The AI service could not complete this request. Check the API key, model setting, connection, and provider usage limits, then try again."
 
-    return ("AI mode is not configured yet. For free local development, install Ollama and set AI_PROVIDER=ollama. "
-            "For hosted Gemini, set AI_PROVIDER=gemini and configure GEMINI_API_KEY. For OpenAI, configure OPENAI_API_KEY. "
+    return ("AI mode is not configured yet. For hosted Groq, set AI_PROVIDER=groq and configure GROQ_API_KEY. "
+            "For free local development, install Ollama and set AI_PROVIDER=ollama. For OpenAI, configure OPENAI_API_KEY. "
             "For now, review the relevant course material and try asking a more specific question.")
 
 
 def ai_provider_configured():
     """Whether a provider is selected for generation (not whether it is reachable)."""
-    provider = os.getenv("AI_PROVIDER", "auto").strip().lower()
+    provider = os.getenv("AI_PROVIDER", "groq").strip().lower()
     if provider == "ollama":
         return True
+    if provider == "groq":
+        return bool(os.getenv("GROQ_API_KEY", "").strip())
     if provider == "gemini":
         return bool(os.getenv("GEMINI_API_KEY", "").strip())
     if provider == "openai":
         return bool(os.getenv("OPENAI_API_KEY", "").strip())
-    return bool(os.getenv("OPENAI_API_KEY", "").strip())
+    return bool(os.getenv("GROQ_API_KEY", "").strip() or os.getenv("OPENAI_API_KEY", "").strip())
 
 
 def _normalise_text(value):

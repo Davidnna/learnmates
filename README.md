@@ -2,7 +2,7 @@
 
 Version 6 update: adds local Ollama support and a responsive mobile navigation menu.
 
-A final-year Computer Science project prototype built with Python, Flask, Flask-Login, Flask-SQLAlchemy, SQLite, HTML/CSS, and optional local Ollama, hosted OpenAI, or Gemini API integration.
+A final-year Computer Science project prototype built with Python, Flask, Flask-Login, Flask-SQLAlchemy, SQLite, HTML/CSS, and optional local Ollama, hosted Groq, OpenAI, or Gemini API integration.
 
 ## Features
 - Student registration, login, and logout
@@ -21,12 +21,12 @@ A final-year Computer Science project prototype built with Python, Flask, Flask-
 - Quiz scoring, history, and performance-based study recommendations
 - Basic administrator dashboard
 - Responsive user interface with a keyboard-operable mobile navigation menu
-- - Free local AI support through Ollama, without a hosted API key
+- Free local AI support through Ollama, without a hosted API key
 
 ## Requirements
 - Python 3.10 or newer recommended
 - Internet access only for package installation and live AI requests
-- Optional Ollama installation for free local model responses, or an OpenAI API key for hosted responses
+- Optional Ollama installation for free local model responses, a Groq API key for hosted free-tier inference, or an OpenAI API key for hosted responses
 
 ## Run locally
 1. Extract this project folder.
@@ -35,7 +35,7 @@ A final-year Computer Science project prototype built with Python, Flask, Flask-
    - macOS/Linux: `python3 -m venv .venv` then `source .venv/bin/activate`
 3. Install dependencies: `pip install -r requirements.txt`
 4. Copy `.env.example` to `.env`.
-5. Set a strong random `SECRET_KEY`. For free local AI, install Ollama, run `ollama pull qwen2.5:3b`, then set `AI_PROVIDER=ollama` in `.env`. For hosted Gemini, set `AI_PROVIDER=gemini` and configure `GEMINI_API_KEY`; for hosted OpenAI, set `AI_PROVIDER=openai` and configure `OPENAI_API_KEY`. Never commit `.env`.
+5. Set a strong random `SECRET_KEY`. For free local AI, install Ollama, run `ollama pull qwen2.5:3b`, then set `AI_PROVIDER=ollama` in `.env`. For hosted Groq, set `AI_PROVIDER=groq`, `GROQ_API_KEY`, and `GROQ_MODEL=openai/gpt-oss-20b`; for hosted OpenAI, set `AI_PROVIDER=openai` and configure `OPENAI_API_KEY`. Never commit `.env`.
 6. Start the application: `python app.py`
 7. Open `http://127.0.0.1:5000` in your browser.
 
@@ -143,11 +143,9 @@ The suite includes static checks for semantic landmarks, skip navigation, public
 
 Visitors can view the Home, About, Features, How It Works, FAQ, and Privacy pages without registering. An account is required for personal notes, AI chat history, quizzes, and progress records. The privacy page describes the current prototype's data flows and limitations; it is not a replacement for a complete institutional privacy policy.
 
-## Hosted Gemini API (free-tier pilot)
+## Hosted Groq API (free-tier pilot)
 
-This version supports Gemini through its OpenAI-compatible chat-completions endpoint. Set `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL` in your environment. The application retries temporary network/provider failures a limited number of times and can try an optional `GEMINI_FALLBACK_MODEL` if you configure a second model that is confirmed available to your API key. Set `GEMINI_FALLBACK_MODEL` only after checking current model availability. Free-tier model availability, quotas, and data-use terms can change; check the provider documentation before public use. Do not send sensitive student data unless the applicable terms and institutional rules permit it.
-
-See `DEPLOYMENT_FREE_PILOT.md` for a Render Web Service + Neon deployment guide. This repository is intended to be configured as a Web Service; it no longer includes a Render Blueprint file.
+The default hosted provider is Groq, using its OpenAI-compatible Chat Completions endpoint. In Render, set `AI_PROVIDER=groq`, `GROQ_API_KEY`, and `GROQ_MODEL=openai/gpt-oss-20b`. The application retries transient failures a limited number of times and can try an optional `GROQ_FALLBACK_MODEL` if you configure a second model that is confirmed available to your account. Check current models and rate limits in [Groq documentation](https://console.groq.com/docs/models) and [rate limits](https://console.groq.com/docs/rate-limits). Free-tier availability and quotas can change; do not send sensitive student data unless the applicable terms and institutional rules permit it.
 
 ## Free local AI with Ollama (recommended for development)
 

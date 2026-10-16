@@ -1,10 +1,10 @@
-"""Focused tests for the bounded Gemini retry helper; no live API calls are made."""
+"""Focused tests for the bounded OpenAI-compatible retry helper; no live API calls are made."""
 import sys
 import types
 import unittest
 from unittest.mock import patch
 
-from app import _gemini_chat_completion
+from app import _chat_completion_with_retries
 
 
 class FakeAPIStatusError(Exception):
@@ -40,7 +40,7 @@ class FakeClient:
         self.chat = types.SimpleNamespace(completions=self.completions)
 
 
-class GeminiRetryTests(unittest.TestCase):
+class ChatCompletionRetryTests(unittest.TestCase):
     def setUp(self):
         self.openai_stub = types.ModuleType("openai")
         self.openai_stub.APIStatusError = FakeAPIStatusError
@@ -54,7 +54,7 @@ class GeminiRetryTests(unittest.TestCase):
         expected = object()
         client = FakeClient([FakeAPIStatusError(503), expected])
         with patch("app.time.sleep") as sleep:
-            result = _gemini_chat_completion(client, "test-model", [], attempts=3)
+            result = _chat_completion_with_retries(client, "test-model", [], attempts=3)
         self.assertIs(result, expected)
         self.assertEqual(client.completions.calls, 2)
         sleep.assert_called_once()
@@ -63,7 +63,7 @@ class GeminiRetryTests(unittest.TestCase):
         client = FakeClient([FakeAPIStatusError(404), object()])
         with patch("app.time.sleep") as sleep:
             with self.assertRaises(FakeAPIStatusError):
-                _gemini_chat_completion(client, "test-model", [], attempts=3)
+                _chat_completion_with_retries(client, "test-model", [], attempts=3)
         self.assertEqual(client.completions.calls, 1)
         sleep.assert_not_called()
 
