@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#6d55dc">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand-mark.svg') }}">
+  <meta name="description" content="LearnMates AI student learning assistance system">
+  <title>{% block title %}LearnMates AI{% endblock %} · Student Learning Assistant</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="topbar">
+  <a class="brand" href="{{ url_for('index') }}" aria-label="LearnMates AI home"><img class="brand-icon" src="{{ url_for('static', filename='brand-mark.svg') }}" alt="" width="38" height="38"><span class="brand-word">LearnMates</span><span class="ai-label">AI</span></a>
+  <button class="menu-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">
+    <span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Menu</span>
+  </button>
+  <nav id="primary-navigation" aria-label="Primary navigation">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+      <a href="{{ url_for('chat') }}" {% if request.endpoint == 'chat' %}aria-current="page"{% endif %}>AI Tutor</a>
+      <a href="{{ url_for('materials') }}" {% if request.endpoint in ['materials', 'delete_material'] %}aria-current="page"{% endif %}>My Notes</a>
+      <a href="{{ url_for('study_tools') }}" {% if request.endpoint == 'study_tools' %}aria-current="page"{% endif %}>Study Tools</a>
+      <a href="{{ url_for('quiz') }}" {% if request.endpoint in ['quiz', 'quiz_result'] %}aria-current="page"{% endif %}>Practice Quiz</a>
+      {% if current_user.role == 'admin' %}<a href="{{ url_for('admin') }}" {% if request.endpoint == 'admin' %}aria-current="page"{% endif %}>Admin</a>{% endif %}
+      <form class="inline-form" method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-button" type="submit">Log out</button></form>
+    {% else %}
+      <a href="{{ url_for('login') }}" {% if request.endpoint == 'login' %}aria-current="page"{% endif %}>Log in</a>
+      <a class="nav-cta" href="{{ url_for('register') }}" {% if request.endpoint == 'register' %}aria-current="page"{% endif %}>Get started</a>
+    {% endif %}
+  </nav>
+</header>
+
+<main id="main-content" class="container" tabindex="-1">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}<div class="flash-stack" role="status" aria-live="polite" aria-atomic="true">{% for category, message in messages %}<div class="flash {{ category }}" role="{% if category == 'error' %}alert{% else %}status{% endif %}" aria-live="{% if category == 'error' %}assertive{% else %}polite{% endif %}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="footer">LearnMates AI · Student Learning Assistance System · {{ current_year }}<br><span>AI-generated content can be incorrect. Verify important academic information with trusted course materials.</span></footer>
+<script>
+(function () {
+  const header = document.querySelector('.topbar');
+  const menuToggle = document.querySelector('.menu-toggle');
+  const primaryNavigation = document.querySelector('#primary-navigation');
+  function setMenuOpen(open) {
+    if (!header || !menuToggle || !primaryNavigation) return;
+    header.classList.toggle('nav-open', open);
+    menuToggle.setAttribute('aria-expanded', String(open));
+    const icon = menuToggle.querySelector('.menu-toggle-icon');
+    const label = menuToggle.querySelector('.menu-toggle-label');
+    if (icon) icon.textContent = open ? '×' : '☰';
+    if (label) label.textContent = open ? 'Close menu' : 'Menu';
+  }
+  if (menuToggle && primaryNavigation) {
+    menuToggle.addEventListener('click', () => {
+      setMenuOpen(menuToggle.getAttribute('aria-expanded') !== 'true');
+    });
+    primaryNavigation.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenuOpen(false)));
+    primaryNavigation.querySelectorAll('button').forEach(button => button.addEventListener('click', () => setMenuOpen(false)));
+    document.addEventListener('click', event => {
+      if (menuToggle.getAttribute('aria-expanded') === 'true' && !header.contains(event.target)) setMenuOpen(false);
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') {
+        setMenuOpen(false);
+        menuToggle.focus();
+      }
+    });
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 1100) setMenuOpen(false);
+    });
+  }
+  document.querySelectorAll('[data-prompt]').forEach(button => {
+    button.addEventListener('click', () => {
+      const field = document.querySelector('textarea[name="question"]');
+      if (field) { field.value = button.dataset.prompt; field.focus(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

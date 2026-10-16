@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block title %}Study tools{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">ACTIVE RECALL & REVISION</div><h1>Study tools</h1><p class="muted">Create a concise overview or flashcards from your own course material.</p></div></div>
+<div class="content-grid">
+<section class="panel"><h2>Choose your material</h2><form method="post" class="form-stack" id="study-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label>Use a saved document<select name="document_id"><option value="">Paste text instead / no document selected</option>{% for d in docs %}<option value="{{ d.id }}" {% if selected_doc_id|string == d.id|string %}selected{% endif %}>{{ d.title }}</option>{% endfor %}</select></label>
+<div class="form-divider"><span>OR PASTE EXCERPT</span></div>
+<label>Study text<textarea name="source_text" rows="9" maxlength="12000" placeholder="Paste lecture notes, definitions, or a section of your textbook here...">{{ source_text }}</textarea></label>
+<div class="button-row"><button class="button primary" type="submit" name="action" value="summary">Create summary</button><button class="button secondary" type="submit" name="action" value="flashcards">Make flashcards</button></div>
+</form><p class="tiny muted">Only use materials you are permitted to upload. AI-generated study aids can contain mistakes; verify them against your course notes.</p></section>
+<section class="panel"><h2>How to study with this</h2><ol class="steps"><li><b>Summarize</b><span>Review the key ideas before a study session.</span></li><li><b>Recall</b><span>Try to answer flashcard questions before revealing the answers.</span></li><li><b>Verify</b><span>Check definitions and facts against your lecturer's materials.</span></li></ol><div class="tip-box"><b>AI availability</b><p>Live AI summaries and flashcards require an API key in the local environment. Without one, the system uses simple text-based fallback aids.</p></div></section>
+</div>
+{% if result %}<section class="panel result-panel"><div class="panel-heading"><h2>Study overview</h2><span class="score-pill">{{ 'Summary' if result_kind == 'summary' else 'Study aid' }}</span></div><div class="answer-content">{{ result }}</div></section>{% endif %}
+{% if flashcards %}<section class="panel"><div class="panel-heading"><h2>Your flashcards</h2><span class="muted">{{ flashcards|length }} cards</span></div><div class="flashcard-grid">{% for card in flashcards %}<details class="flashcard"><summary>{{ card.front }}</summary><div class="flashcard-answer">{{ card.back }}</div></details>{% endfor %}</div></section>{% endif %}
+{% endblock %}

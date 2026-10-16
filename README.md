@@ -1,0 +1,149 @@
+# LearnMates AI — Student Learning Assistance System
+
+Version 6 update: adds local Ollama support and a responsive mobile navigation menu.
+
+A final-year Computer Science project prototype built with Python, Flask, Flask-Login, Flask-SQLAlchemy, SQLite, HTML/CSS, and optional local Ollama, hosted OpenAI, or Gemini API integration.
+
+## Features
+- Student registration, login, and logout
+- Password hashing
+- AI tutor with optional live model integration and note-grounded responses
+- PDF/TXT upload and text extraction, including PDF page markers for source locations
+- BM25-style keyword retrieval of relevant passages from the selected student-owned notes
+- Retrieved-passage labels ([S1], [S2], etc.) shown in the tutor UI for source transparency
+- Explicit no-match handling so the tutor does not imply unrelated notes support an answer
+- Source-grounded offline fallback when the AI API is not configured
+- Quiz generation with strict JSON/schema validation, distinct answer choices, and verified verbatim evidence quotes when uploaded notes are selected
+- Offline note-based quiz fallback whose correct choices are copied from the selected notes
+- Dashboard score trend visualization for up to the latest seven quiz attempts
+- CSRF protection for POST forms and safer session-cookie defaults
+- Study tools for summaries and revision flashcards from uploaded or pasted material
+- Quiz scoring, history, and performance-based study recommendations
+- Basic administrator dashboard
+- Responsive user interface with a keyboard-operable mobile navigation menu
+- Optional display preferences tucked below the main content to keep the header uncluttered
+- Free local AI support through Ollama, without a hosted API key
+
+## Requirements
+- Python 3.10 or newer recommended
+- Internet access only for package installation and live AI requests
+- Optional Ollama installation for free local model responses, or an OpenAI API key for hosted responses
+
+## Run locally
+1. Extract this project folder.
+2. Create and activate a virtual environment:
+   - Windows: `py -m venv .venv` then `.venv\\Scripts\\activate`
+   - macOS/Linux: `python3 -m venv .venv` then `source .venv/bin/activate`
+3. Install dependencies: `pip install -r requirements.txt`
+4. Copy `.env.example` to `.env`.
+5. Set a strong random `SECRET_KEY`. For free local AI, install Ollama, run `ollama pull qwen2.5:3b`, then set `AI_PROVIDER=ollama` in `.env`. For hosted Gemini, set `AI_PROVIDER=gemini` and configure `GEMINI_API_KEY`; for hosted OpenAI, set `AI_PROVIDER=openai` and configure `OPENAI_API_KEY`. Never commit `.env`.
+6. Start the application: `python app.py`
+7. Open `http://127.0.0.1:5000` in your browser.
+
+The database tables are created automatically on first run.
+
+## Create an administrator
+Register an account normally, stop the app, then run:
+```bash
+python
+>>> from app import app, db, User
+>>> with app.app_context():
+...     u = User.query.filter_by(email="your-email@example.com").first()
+...     u.role = "admin"
+...     db.session.commit()
+>>> exit()
+```
+Restart the application and use the Admin link. Do not expose this prototype publicly without hardening it.
+
+## Important limitations
+- Without `OPENAI_API_KEY`, the app explicitly states that live AI is not configured. When course notes are selected, fallback quiz answers are copied from source sentences; without notes, fallback questions are clearly labeled study-habit demonstrations, not subject assessments.
+- Document retrieval uses a lightweight BM25-style keyword ranker, not embeddings or a vector database. It is a transparent baseline suitable for demonstrating retrieval-augmented generation (RAG), but may miss semantically related passages. Source labels identify the retrieved snippets supplied to the model; they are not a guarantee that the answer is correct or exhaustive.
+- PDF extraction works only for text-based PDFs; scanned image PDFs require OCR, which is not included.
+- The starter is for local academic demonstration. Before production deployment, add email verification/password reset, login rate limiting, robust audit logging, malware scanning, stronger file isolation, database migrations, HTTPS, and operational monitoring. CSRF protection and basic session-cookie flags are included in this prototype, but they do not by themselves make it production-ready.
+- The first registered user is not automatically an administrator.
+- Performance recommendations are simple rules based on quiz scores; this is not a validated predictive model.
+
+## Suggested project structure
+```text
+ai_student_learning_assistant/
+├── app.py
+├── requirements.txt
+├── .env.example
+├── README.md
+├── templates/
+│   ├── study_tools.html
+│   ├── base.html
+│   ├── index.html
+│   ├── register.html
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── chat.html
+│   ├── materials.html
+│   ├── quiz.html
+│   ├── quiz_result.html
+│   └── admin.html
+├── static/style.css
+├── uploads/
+└── tests/
+```
+
+## Academic integrity
+Use this prototype as a starting point. Run the system yourself, test it, document the actual outcomes, cite external sources in your report, and make sure you can explain each implementation decision during your defense.
+
+
+## Version 4 additions
+- Source-grounded quiz generation now requires a verbatim evidence quote from the selected notes, and the correct answer option must match that quote exactly. Invalid AI output is rejected.
+- If AI quiz generation is unavailable or fails validation, a local fallback builds questions from sentences in the selected notes and uses explicitly contradicted alternatives. If there is not enough readable text, the interface says so rather than pretending a content quiz was created.
+- The quiz result page shows the chosen and correct answer text plus supporting source evidence when available.
+- Dashboard includes a compact score-trend bar chart for the latest seven attempts.
+- POST forms require a session CSRF token. Session cookies use HttpOnly and SameSite=Lax defaults; `COOKIE_SECURE=true` should be used behind HTTPS.
+
+## Verification performed for this package
+- Python syntax compilation passed for `app.py` and test modules.
+- All Jinja templates parsed successfully.
+- Isolated checks passed for note-derived quiz generation, unique answer options, verbatim evidence acceptance, fabricated-evidence rejection, and note retrieval.
+- The full Flask integration test suite could not be run in the build environment because Flask dependencies could not be downloaded. Run `python -m unittest discover -s tests -v` locally after installing requirements.
+
+## Functional requirements and accessibility review
+
+The current prototype's core functional scope is: account registration/login/logout; private per-account PDF/TXT note uploads and deletion; question answering with optional note retrieval; study summaries and flashcards; quiz generation/submission/scoring/review; recent performance tracking; and a basic admin usage view. Optional live AI requires a valid API key and network access. An offline fallback is available for selected study workflows; fallback content is explicitly distinguished from live AI output.
+
+### Accessibility and responsive design work in this version
+- Semantic header, primary-navigation landmark, main landmark, and footer; skip-to-main-content link; current-page navigation state.
+- Visible keyboard focus indicators and larger minimum targets for common controls.
+- Proper form labels, helper text for the tutor question, fieldsets/legends for quiz questions, table header scopes, and a tabular alternative to the score chart.
+- User-controlled larger text, high-contrast display, increased reading spacing, and underlined links. Preferences are stored locally in the browser when storage is available.
+- Responsive navigation wrapping and mobile layouts, no external font download requirement, and reduced-motion/forced-colors CSS support.
+- Status and error announcements for flashed messages.
+
+These are accessibility-oriented improvements, not a claim of certified WCAG conformance. Assistive-technology testing remains necessary. Before submission, test all routes using keyboard only, a screen reader (NVDA with Firefox/Chrome or VoiceOver with Safari), 200% browser zoom, a 320 CSS-pixel viewport, Windows High Contrast/forced-colors if available, and an automated checker such as axe. Check the actual color contrast of every state and the focus order in the running application.
+
+### Requirements traceability
+See `docs/requirements-traceability.md` for the implemented scope, test coverage, and items that remain unverified or outside this prototype.
+
+### Accessibility regression checks
+After installing the requirements, run the full test suite:
+```bash
+python -m unittest discover -s tests -v
+```
+The suite includes static checks for semantic landmarks, skip navigation, display preferences, keyboard focus support, reduced-motion/forced-colors styling, a chart table alternative, and accessible tutor prompt buttons. Static checks do not establish WCAG conformance; follow the manual test checklist above.
+
+## Hosted Gemini API (free-tier pilot)
+
+This version supports Gemini through its OpenAI-compatible chat-completions endpoint. Set `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL` in your environment. Free-tier model availability, quotas, and data-use terms can change; check the provider documentation before public use. Do not send sensitive student data unless the applicable terms and institutional rules permit it.
+
+See `DEPLOYMENT_FREE_PILOT.md` for a Render + Neon deployment guide.
+
+## Free local AI with Ollama (recommended for development)
+
+1. Install Ollama for Windows from https://ollama.com/download/windows.
+2. Open a new PowerShell terminal and download a small model: `ollama pull qwen2.5:3b`. This download can take several minutes and uses disk space.
+3. In the project `.env` file, set `AI_PROVIDER=ollama`, `OLLAMA_BASE_URL=http://localhost:11434/v1`, and `OLLAMA_MODEL=qwen2.5:3b`.
+4. Restart LearnMates AI (`Ctrl+C`, then `python app.py`). Keep Ollama running in the background.
+5. Check the model is installed with `ollama list`.
+
+No OpenAI API key is required for Ollama. Response speed depends on your computer's RAM/CPU/GPU. If you prefer hosted OpenAI, set `AI_PROVIDER=openai` and configure `OPENAI_API_KEY`. Never commit `.env` or share API keys.
+
+## Render URL note
+
+The default `onrender.com` hostname is based on the Render service name. To try to use `https://learnmates.onrender.com`, open the existing web service in the Render Dashboard and rename it to `learnmates` if that name is available. Render may keep the old URL or require creating a new service depending on the service state; verify the hostname shown in Settings before sharing it. The requested name is not guaranteed to be available.
