@@ -17,9 +17,11 @@ This checklist records the intended scope of the current prototype. It does not 
 | FR-11 | Administrator can view basic aggregate usage and account list | `/admin` | Implemented; verify student receives 403 and administrator can access |
 | FR-12 | State-changing forms are protected against missing/invalid CSRF tokens | `protect_state_changing_requests` | Missing-token smoke test exists; test invalid and valid tokens locally |
 | FR-13 | Core UI supports keyboard and screen-reader navigation | shared template and styles | Accessibility improvements implemented; requires manual assistive-technology testing |
-| FR-14 | UI reflows on mobile and supports optional display preferences | `static/style.css`, shared settings script | Responsive CSS and preferences implemented; verify at 320/375/768/1024 px widths |
+| FR-14 | UI reflows on mobile | `static/style.css`, shared template | Responsive layouts are implemented; verify at 320/375/768/1024 px widths |
 | FR-15 | Navigation remains usable on narrow screens and by keyboard | `templates/base.html`, `static/style.css` | Mobile disclosure button exposes `aria-expanded`, closes with Escape, and is covered by static regression checks; verify in a real browser |
 | FR-16 | Students can use a free local language model without an OpenAI key | `ai_response`, `.env.example` | Ollama-compatible chat completion path added; requires installing Ollama/model and running an end-to-end request locally |
+| FR-17 | Visitors can read product context without registering | `/about`, `/features`, `/how-it-works`, `/faq`, `/privacy` | Public routes and template parsing are checked automatically; full Flask route smoke tests require installed dependencies |
+| FR-18 | Temporary Gemini outages are retried and optional fallback model can be configured | `_gemini_chat_completion`, `ai_response`, `.env.example` | Focused mock tests cover temporary 503 retry and immediate non-transient 404 failure; live provider behavior must be tested in deployment |
 
 ## Important limitations and acceptance gates
 

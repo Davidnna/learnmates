@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}Privacy notice{% endblock %}
+{% block content %}
+<section class="public-hero"><div class="eyebrow">PRIVACY &amp; DATA</div><h1>Understand what LearnMates AI handles.</h1><p>This notice describes the current prototype's data flows in plain language. It is an informational notice, not a substitute for a complete institutional privacy policy.</p></section>
+<section class="prose-panel">
+<h2>Information the app stores</h2><p>When you register and use the personal tools, the current application stores your name, email address, a password hash (not your plain-text password), uploaded-note text, chat messages, and quiz attempts/scores in its configured database.</p>
+<h2>AI provider requests</h2><p>When an AI feature is used, the app sends the relevant prompt and instructions—and, where applicable, selected passages retrieved from your study notes—to the AI provider configured by the site operator. The current hosted configuration is intended to use Gemini, but the provider and its data practices are governed by the active deployment settings and the provider's own terms.</p>
+<h2>Files and hosting</h2><p>The app accepts PDF and TXT uploads up to 5 MB. Extracted text is saved in the database, while original files are stored on the web service's local upload directory. On free ephemeral hosting, original files may not persist after a restart or redeploy. Hosting and database providers process data under their own terms.</p>
+<h2>Practical precautions</h2><ul><li>Do not upload passwords, financial information, health records, confidential assessments, or other sensitive personal information.</li><li>Use only material you are allowed to upload and share with the configured AI provider.</li><li>Keep your password private and sign out on shared devices.</li><li>Remember that AI-generated output may be inaccurate.</li></ul>
+<h2>Retention and requests</h2><p>This prototype does not currently provide a complete self-service account-deletion or data-export workflow. Before using it for a broader student pilot, the project operator should publish an appropriate contact channel, define retention and deletion procedures, and confirm institutional approval and applicable data-protection requirements.</p>
+<div class="notice-card"><strong>Privacy by caution</strong><p>Use LearnMates AI with ordinary study materials rather than confidential or sensitive records until the pilot's data-handling arrangements have been reviewed and communicated.</p></div>
+</section>
+{% endblock %}

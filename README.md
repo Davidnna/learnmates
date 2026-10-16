@@ -21,8 +21,7 @@ A final-year Computer Science project prototype built with Python, Flask, Flask-
 - Quiz scoring, history, and performance-based study recommendations
 - Basic administrator dashboard
 - Responsive user interface with a keyboard-operable mobile navigation menu
-- Optional display preferences tucked below the main content to keep the header uncluttered
-- Free local AI support through Ollama, without a hosted API key
+- - Free local AI support through Ollama, without a hosted API key
 
 ## Requirements
 - Python 3.10 or newer recommended
@@ -56,7 +55,7 @@ python
 Restart the application and use the Admin link. Do not expose this prototype publicly without hardening it.
 
 ## Important limitations
-- Without `OPENAI_API_KEY`, the app explicitly states that live AI is not configured. When course notes are selected, fallback quiz answers are copied from source sentences; without notes, fallback questions are clearly labeled study-habit demonstrations, not subject assessments.
+- Without the required key for the selected hosted provider, the app explicitly states that live AI is not configured. When course notes are selected, fallback quiz answers are copied from source sentences; without notes, fallback questions are clearly labeled study-habit demonstrations, not subject assessments.
 - Document retrieval uses a lightweight BM25-style keyword ranker, not embeddings or a vector database. It is a transparent baseline suitable for demonstrating retrieval-augmented generation (RAG), but may miss semantically related passages. Source labels identify the retrieved snippets supplied to the model; they are not a guarantee that the answer is correct or exhaustive.
 - PDF extraction works only for text-based PDFs; scanned image PDFs require OCR, which is not included.
 - The starter is for local academic demonstration. Before production deployment, add email verification/password reset, login rate limiting, robust audit logging, malware scanning, stronger file isolation, database migrations, HTTPS, and operational monitoring. CSRF protection and basic session-cookie flags are included in this prototype, but they do not by themselves make it production-ready.
@@ -65,28 +64,41 @@ Restart the application and use the Admin link. Do not expose this prototype pub
 
 ## Suggested project structure
 ```text
-ai_student_learning_assistant/
+learnmates_ai/
 ├── app.py
 ├── requirements.txt
 ├── .env.example
 ├── README.md
+├── DEPLOYMENT_FREE_PILOT.md
+├── docs/requirements-traceability.md
 ├── templates/
-│   ├── study_tools.html
 │   ├── base.html
 │   ├── index.html
+│   ├── about.html
+│   ├── features.html
+│   ├── how_it_works.html
+│   ├── faq.html
+│   ├── privacy.html
 │   ├── register.html
 │   ├── login.html
 │   ├── dashboard.html
 │   ├── chat.html
 │   ├── materials.html
+│   ├── study_tools.html
 │   ├── quiz.html
 │   ├── quiz_result.html
 │   └── admin.html
-├── static/style.css
-├── uploads/
+├── static/
+│   ├── style.css
+│   ├── brand-mark.svg
+│   └── favicon.svg
 └── tests/
+    ├── test_accessibility_static.py
+    ├── test_ai_retry.py
+    ├── test_quiz_logic.py
+    ├── test_retrieval.py
+    └── test_smoke.py
 ```
-
 ## Academic integrity
 Use this prototype as a starting point. Run the system yourself, test it, document the actual outcomes, cite external sources in your report, and make sure you can explain each implementation decision during your defense.
 
@@ -112,8 +124,7 @@ The current prototype's core functional scope is: account registration/login/log
 - Semantic header, primary-navigation landmark, main landmark, and footer; skip-to-main-content link; current-page navigation state.
 - Visible keyboard focus indicators and larger minimum targets for common controls.
 - Proper form labels, helper text for the tutor question, fieldsets/legends for quiz questions, table header scopes, and a tabular alternative to the score chart.
-- User-controlled larger text, high-contrast display, increased reading spacing, and underlined links. Preferences are stored locally in the browser when storage is available.
-- Responsive navigation wrapping and mobile layouts, no external font download requirement, and reduced-motion/forced-colors CSS support.
+- - Responsive navigation wrapping and mobile layouts, no external font download requirement, and reduced-motion/forced-colors CSS support.
 - Status and error announcements for flashed messages.
 
 These are accessibility-oriented improvements, not a claim of certified WCAG conformance. Assistive-technology testing remains necessary. Before submission, test all routes using keyboard only, a screen reader (NVDA with Firefox/Chrome or VoiceOver with Safari), 200% browser zoom, a 320 CSS-pixel viewport, Windows High Contrast/forced-colors if available, and an automated checker such as axe. Check the actual color contrast of every state and the focus order in the running application.
@@ -126,13 +137,17 @@ After installing the requirements, run the full test suite:
 ```bash
 python -m unittest discover -s tests -v
 ```
-The suite includes static checks for semantic landmarks, skip navigation, display preferences, keyboard focus support, reduced-motion/forced-colors styling, a chart table alternative, and accessible tutor prompt buttons. Static checks do not establish WCAG conformance; follow the manual test checklist above.
+The suite includes static checks for semantic landmarks, skip navigation, public information navigation, keyboard focus support, reduced-motion/forced-colors styling, a chart table alternative, and accessible tutor prompt buttons. Static checks do not establish WCAG conformance; follow the manual test checklist above.
+
+## Public information pages
+
+Visitors can view the Home, About, Features, How It Works, FAQ, and Privacy pages without registering. An account is required for personal notes, AI chat history, quizzes, and progress records. The privacy page describes the current prototype's data flows and limitations; it is not a replacement for a complete institutional privacy policy.
 
 ## Hosted Gemini API (free-tier pilot)
 
-This version supports Gemini through its OpenAI-compatible chat-completions endpoint. Set `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL` in your environment. Free-tier model availability, quotas, and data-use terms can change; check the provider documentation before public use. Do not send sensitive student data unless the applicable terms and institutional rules permit it.
+This version supports Gemini through its OpenAI-compatible chat-completions endpoint. Set `AI_PROVIDER=gemini`, `GEMINI_API_KEY`, and `GEMINI_MODEL` in your environment. The application retries temporary network/provider failures a limited number of times and can try an optional `GEMINI_FALLBACK_MODEL` if you configure a second model that is confirmed available to your API key. Set `GEMINI_FALLBACK_MODEL` only after checking current model availability. Free-tier model availability, quotas, and data-use terms can change; check the provider documentation before public use. Do not send sensitive student data unless the applicable terms and institutional rules permit it.
 
-See `DEPLOYMENT_FREE_PILOT.md` for a Render + Neon deployment guide.
+See `DEPLOYMENT_FREE_PILOT.md` for a Render Web Service + Neon deployment guide. This repository is intended to be configured as a Web Service; it no longer includes a Render Blueprint file.
 
 ## Free local AI with Ollama (recommended for development)
 

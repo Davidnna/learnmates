@@ -1,4 +1,4 @@
-import os, json, re, secrets, math, random, hmac, warnings
+import os, json, re, secrets, math, random, hmac, warnings, time
 from datetime import datetime, timezone
 from pathlib import Path
 from functools import wraps
@@ -223,12 +223,34 @@ def retrieve_passages(text, question, limit=5):
              "score": round(item[0], 3), "coverage": round(item[2], 3)}
             for item in scored[:limit] if item[2] >= 0.12]
 
-def ai_response(prompt, instructions):
-    """Generate a response with local Ollama or OpenAI; otherwise return an honest fallback.
+def _gemini_chat_completion(client, model, messages, temperature=0.3, attempts=3):
+    """Call Gemini with bounded retries for temporary provider failures."""
+    from openai import APIConnectionError, APIStatusError, APITimeoutError
 
-    Ollama uses its OpenAI-compatible chat-completions endpoint at localhost, so no
-    hosted API key is needed. Set AI_PROVIDER=ollama and download the configured model.
-    """
+    retryable_statuses = {429, 500, 502, 503, 504}
+    attempts = max(1, min(int(attempts), 3))
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            return client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+            )
+        except (APIConnectionError, APITimeoutError) as exc:
+            last_error = exc
+        except APIStatusError as exc:
+            if exc.status_code not in retryable_statuses:
+                raise
+            last_error = exc
+        if attempt < attempts - 1:
+            # Keep the wait short because this is a student-facing web request.
+            time.sleep(min(0.8 * (2 ** attempt), 2.0))
+    raise last_error
+
+
+def ai_response(prompt, instructions):
+    """Generate a response with local Ollama or a hosted provider, with honest fallbacks."""
     provider = os.getenv("AI_PROVIDER", "auto").strip().lower()
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
 
@@ -257,39 +279,56 @@ def ai_response(prompt, instructions):
                     "`ollama list` and make sure the configured model is installed. "
                     "You can also check OLLAMA_BASE_URL and OLLAMA_MODEL in your .env file.")
 
-    # Gemini's OpenAI-compatible endpoint lets this project reuse its existing SDK.
-    # The API key remains server-side in GEMINI_API_KEY; never expose it to browser code.
     if provider == "gemini":
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
         if not api_key:
             return "Gemini mode is selected, but GEMINI_API_KEY is missing from the hosting environment."
         try:
-            from openai import OpenAI
+            from openai import OpenAI, APIConnectionError, APIStatusError, APITimeoutError
             client = OpenAI(
                 api_key=api_key,
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
                 timeout=float(os.getenv("AI_TIMEOUT_SECONDS", "60")),
+                max_retries=0,
             )
-            model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": instructions},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.3,
-            )
+            model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
+            fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
+            messages = [
+                {"role": "system", "content": instructions},
+                {"role": "user", "content": prompt},
+            ]
+            try:
+                response = _gemini_chat_completion(client, model, messages)
+            except (APIStatusError, APIConnectionError, APITimeoutError) as primary_error:
+                is_transient = isinstance(primary_error, (APIConnectionError, APITimeoutError)) or getattr(primary_error, "status_code", None) in {429, 500, 502, 503, 504}
+                if not (is_transient and fallback_model and fallback_model != model):
+                    raise
+                app.logger.warning("Gemini primary model %s failed temporarily; trying configured fallback model %s", model, fallback_model)
+                try:
+                    response = _gemini_chat_completion(client, fallback_model, messages, attempts=2)
+                except Exception:
+                    app.logger.exception("Gemini fallback model request failed")
+                    raise primary_error
             content = response.choices[0].message.content if response.choices else ""
             return (content or "The AI provider returned an empty response. Please try again.").strip()
-        except Exception:
-            app.logger.exception("Gemini API request failed")
-            return "The AI service could not complete this request. Check GEMINI_API_KEY, GEMINI_MODEL, connectivity, and the provider's current quota, then try again."
+        except Exception as exc:
+            app.logger.exception("Gemini API request failed after retry handling")
+            try:
+                from openai import APIConnectionError, APIStatusError, APITimeoutError
+                temporary = isinstance(exc, (APIConnectionError, APITimeoutError)) or (isinstance(exc, APIStatusError) and exc.status_code in {429, 500, 502, 503, 504})
+            except Exception:
+                temporary = False
+            if temporary:
+                return ("The AI service is temporarily busy or unavailable. Please wait a moment and try again. "
+                        "Your account and saved study notes have not been deleted.")
+            return ("The AI service could not complete this request. Check GEMINI_API_KEY and GEMINI_MODEL in Render, "
+                    "and confirm the selected model is available to your API key.")
 
     # Preserve the original OpenAI integration when a key is configured. In auto mode,
     # a supplied key selects OpenAI; explicit AI_PROVIDER=openai requires a key.
     if provider == "openai" or (provider == "auto" and api_key):
         if not api_key:
-            return "OpenAI mode is selected, but OPENAI_API_KEY is missing from your .env file."
+            return "OpenAI mode is selected, but OPENAI_API_KEY is missing from your hosting environment."
         try:
             from openai import OpenAI
             client = OpenAI(api_key=api_key, timeout=float(os.getenv("AI_TIMEOUT_SECONDS", "60")))
@@ -459,6 +498,31 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard"))
     return render_template("index.html")
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/features")
+def features():
+    return render_template("features.html")
+
+
+@app.route("/how-it-works")
+def how_it_works():
+    return render_template("how_it_works.html")
+
+
+@app.route("/faq")
+def faq():
+    return render_template("faq.html")
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
 
 
 @app.route("/register", methods=["GET", "POST"])

@@ -36,6 +36,15 @@ class AccessibilityTemplateChecks(unittest.TestCase):
         self.assertNotIn("data-pref=", self.base)
         self.assertNotIn("localStorage", self.base)
 
+    def test_public_information_navigation_and_ai_retry_support(self):
+        for endpoint in ("about", "features", "how_it_works", "faq", "privacy"):
+            self.assertIn("url_for('" + endpoint + "')", self.base)
+        app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn("def _gemini_chat_completion", app_source)
+        self.assertIn("retryable_statuses = {429, 500, 502, 503, 504}", app_source)
+        self.assertIn("GEMINI_FALLBACK_MODEL", app_source)
+        self.assertFalse((ROOT / "render.yaml").exists())
+
     def test_keyboard_and_motion_support(self):
         self.assertIn(":focus-visible", self.css)
         self.assertIn("prefers-reduced-motion: reduce", self.css)

@@ -17,6 +17,20 @@ class BasicSmokeTests(unittest.TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
+    def test_public_information_pages_do_not_require_login(self):
+        pages = {
+            "/about": b"ABOUT THE PROJECT",
+            "/features": b"FEATURE GUIDE",
+            "/how-it-works": b"GETTING STARTED",
+            "/faq": b"Frequently asked questions",
+            "/privacy": b"PRIVACY &amp; DATA",
+        }
+        for path, expected in pages.items():
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(expected, response.data)
+
     def test_login_page(self):
         response = self.client.get("/login")
         self.assertEqual(response.status_code, 200)
