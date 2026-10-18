@@ -85,6 +85,15 @@ class LearningDocument(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+def _parse_document_id(raw_value):
+    """Convert a submitted document ID to the integer type used by PostgreSQL."""
+    try:
+        document_id = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return document_id if document_id > 0 else None
+
+
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
@@ -645,7 +654,10 @@ def chat():
     grounding_status = "general"
     if request.method == "POST":
         question = request.form.get("question", "").strip()[:3000]
-        doc_id = request.form.get("document_id", "").strip()
+        raw_doc_id = request.form.get("document_id", "").strip()
+        doc_id = _parse_document_id(raw_doc_id) if raw_doc_id else None
+        if raw_doc_id and doc_id is None:
+            flash("Please select a valid learning document.", "error")
         if not question:
             flash("Please enter a question.", "error")
         else:
@@ -762,9 +774,12 @@ def quiz():
     quiz_source_label = ""
     if request.method == "POST" and request.form.get("action") == "generate":
         topic = request.form.get("topic", "").strip()[:160]
-        doc_id = request.form.get("document_id", "").strip()
+        raw_doc_id = request.form.get("document_id", "").strip()
+        doc_id = _parse_document_id(raw_doc_id) if raw_doc_id else None
         source = ""
-        if doc_id:
+        if raw_doc_id and doc_id is None:
+            flash("Please select a valid learning document.", "error")
+        if doc_id is not None:
             doc = LearningDocument.query.filter_by(id=doc_id, owner_id=current_user.id).first()
             if doc:
                 source = doc.extracted_text
@@ -833,9 +848,12 @@ def study_tools():
     if request.method == "POST":
         action = request.form.get("action", "summary")
         selected_doc_id = request.form.get("document_id", "").strip()
+        parsed_doc_id = _parse_document_id(selected_doc_id) if selected_doc_id else None
         pasted_text = request.form.get("source_text", "").strip()[:12000]
-        if selected_doc_id:
-            doc = LearningDocument.query.filter_by(id=selected_doc_id, owner_id=current_user.id).first()
+        if selected_doc_id and parsed_doc_id is None:
+            flash("Please select a valid learning document.", "error")
+        if parsed_doc_id is not None:
+            doc = LearningDocument.query.filter_by(id=parsed_doc_id, owner_id=current_user.id).first()
             if doc:
                 source_text = doc.extracted_text[:12000]
             else:
