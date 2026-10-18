@@ -67,6 +67,15 @@ class ChatCompletionRetryTests(unittest.TestCase):
         self.assertEqual(client.completions.calls, 1)
         sleep.assert_not_called()
 
+    def test_passes_json_response_format_when_requested(self):
+        expected = object()
+        client = FakeClient([expected])
+        result = _chat_completion_with_retries(
+            client, "test-model", [], response_format={"type": "json_object"}
+        )
+        self.assertIs(result, expected)
+        self.assertEqual(client.completions.calls, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
