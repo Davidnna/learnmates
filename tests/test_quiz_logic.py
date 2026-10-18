@@ -39,6 +39,17 @@ class QuizLogicTests(unittest.TestCase):
         self.assertEqual(len(validated), 1)
         self.assertIn(quote, validated[0]["explanation"])
 
+    def test_schema_validation_allows_paraphrased_answer_with_verbatim_evidence(self):
+        quote = "A stack is a linear data structure that follows the last in first out principle."
+        items = [{"question": "Which principle describes how a stack removes items?",
+                  "options": ["The newest item is removed first", "The oldest item is removed first",
+                              "Items are removed in alphabetical order", "Items are removed at random"],
+                  "answer": 0, "explanation": "A stack removes the most recently added item first.", "evidence": quote}]
+        validated = _validate_questions(items, self.notes)
+        self.assertEqual(len(validated), 1)
+        self.assertNotEqual(validated[0]["options"][validated[0]["answer"]], quote)
+        self.assertIn(quote, validated[0]["explanation"])
+
     def test_retrieval_returns_relevant_passage(self):
         results = retrieve_passages(self.notes, "How does a stack work?")
         self.assertTrue(results)

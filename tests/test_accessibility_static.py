@@ -9,6 +9,7 @@ class AccessibilityTemplateChecks(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = Environment(loader=FileSystemLoader(str(ROOT / "templates")))
+        cls.env.filters["markdown"] = lambda value: value
         cls.css = (ROOT / "static" / "style.css").read_text(encoding="utf-8")
         cls.base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
 
@@ -46,6 +47,28 @@ class AccessibilityTemplateChecks(unittest.TestCase):
         self.assertIn("https://api.groq.com/openai/v1", app_source)
         self.assertIn("GROQ_API_KEY", app_source)
         self.assertFalse((ROOT / "render.yaml").exists())
+
+    def test_tutor_markdown_and_conversation_ui(self):
+        chat = (ROOT / "templates" / "chat.html").read_text(encoding="utf-8")
+        app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn("class=\"chat-transcript\"", chat)
+        self.assertIn("m.content|markdown|safe", chat)
+        self.assertIn("def render_markdown(value)", app_source)
+        self.assertIn("bleach.clean", app_source)
+        self.assertIn("class=\"chat-composer\"", chat)
+
+    def test_quiz_question_count_and_student_facing_copy(self):
+        quiz = (ROOT / "templates" / "quiz.html").read_text(encoding="utf-8")
+        app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        self.assertIn('name="question_count"', quiz)
+        self.assertIn('value="{{ question_count or 10 }}"', quiz)
+        self.assertIn('count=question_count', app_source)
+        for template in (ROOT / "templates").glob("*.html"):
+            content = template.read_text(encoding="utf-8").lower()
+            self.assertNotIn("groq_api_key", content)
+            self.assertNotIn("gemini_api_key", content)
+            self.assertNotIn("openai_api_key", content)
+            self.assertNotIn(".env", content)
 
     def test_keyboard_and_motion_support(self):
         self.assertIn(":focus-visible", self.css)

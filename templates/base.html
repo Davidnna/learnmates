@@ -85,6 +85,8 @@
       if (window.innerWidth > 1100) setMenuOpen(false);
     });
   }
+  const chatTranscript = document.querySelector('.chat-transcript');
+  if (chatTranscript) chatTranscript.scrollTop = chatTranscript.scrollHeight;
   document.querySelectorAll('[data-prompt]').forEach(button => {
     button.addEventListener('click', () => {
       const field = document.querySelector('textarea[name="question"]');
