@@ -343,14 +343,17 @@ def ai_response(prompt, instructions, max_tokens=None, json_mode=False):
                 "content": f"Instructions:\n{instructions}\n\nStudent request:\n{prompt}",
             }]
             try:
-                response = _chat_completion_with_retries(client, model, messages, max_tokens=max_tokens, response_format={"type": "json_object"} if json_mode else None)
+                # Groq's enforced JSON mode can reject otherwise valid prompts with
+                # json_validate_failed (HTTP 400). Ask for JSON in the prompt and
+                # validate/parse it in the quiz pipeline instead of using response_format.
+                response = _chat_completion_with_retries(client, model, messages, max_tokens=max_tokens, response_format=None)
             except (APIStatusError, APIConnectionError, APITimeoutError) as primary_error:
                 is_transient = isinstance(primary_error, (APIConnectionError, APITimeoutError)) or getattr(primary_error, "status_code", None) in {429, 500, 502, 503, 504}
                 if not (is_transient and fallback_model and fallback_model != model):
                     raise
                 app.logger.warning("Groq primary model %s failed temporarily; trying configured fallback model %s", model, fallback_model)
                 try:
-                    response = _chat_completion_with_retries(client, fallback_model, messages, attempts=2, max_tokens=max_tokens, response_format={"type": "json_object"} if json_mode else None)
+                    response = _chat_completion_with_retries(client, fallback_model, messages, attempts=2, max_tokens=max_tokens, response_format=None)
                 except Exception:
                     app.logger.exception("Groq fallback model request failed")
                     raise primary_error
