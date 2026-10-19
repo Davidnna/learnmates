@@ -1,44 +1,31 @@
-# LearnMeets AI React Migration — Milestone 1
+# LearnMeets AI React migration plan
 
-## Goal
-Introduce a modern React + Vite frontend while preserving the existing Flask backend, Groq integration, Neon PostgreSQL database, and student records.
+## Milestone 1 — UI foundation
+A separate React + Vite frontend, responsive application shell, and shared fetch client were introduced. The original Flask templates and handlers were retained.
 
-## What is included in this milestone
-- A separate `frontend/` Vite + React application.
-- Responsive modern AI SaaS shell with sidebar, top navigation, dashboard, feature areas, help, settings, and authentication UI scaffolds.
-- A shared fetch client configured to include credentials and accept a configurable `VITE_API_BASE_URL`.
-- Vite local development proxy for `/api` requests to Flask on `127.0.0.1:5000`.
-- Existing Flask templates and route handlers remain intact.
+## Milestone 2 — JSON API and feature wiring
+This package adds authenticated Flask JSON endpoints and connects the React UI to them. Existing database models are reused; no destructive schema changes or database reset are included.
 
-## Important integration status
-This milestone establishes the frontend foundation; it does not yet replace the production HTML experience. The current Flask routes primarily return rendered HTML and use CSRF-protected form posts. The React forms and feature pages are intentionally scaffolds and are not represented as connected to the backend yet.
+Implemented API areas:
+- `GET /api/session` for authentication status and CSRF token.
+- `POST /api/auth/register`, `/api/auth/login`, `/api/auth/logout`.
+- `GET /api/dashboard` for account-specific metrics, recent quiz attempts, and materials.
+- `GET/POST /api/chat` for conversation history and tutor messages.
+- `GET/POST /api/materials` and `POST /api/materials/<id>/delete`.
+- `GET /api/quiz/active`, `POST /api/quiz/generate`, and `POST /api/quiz/submit`.
+- `GET /api/quiz-history` and `GET /api/quiz-history/<id>`.
+- `GET/POST /api/study-tools` for summary and flashcard generation.
 
-## Next milestone: API and authentication contract
-Before feature activation, inspect each existing Flask route and implement/test appropriate JSON endpoints for:
-- Session status and current student profile
-- Registration, login, logout, and CSRF/session protection
-- Dashboard summary and recent activity
-- Tutor messages and conversation retrieval
-- Document upload, listing, deletion, and extracted text availability
-- Quiz generation, active quiz state, submission, score, history, and review
-- Study-tool summary and flashcard generation
-- Admin-only data with server-side authorization
+Security controls include session cookies, CSRF token validation for mutating requests, owner-scoped document/quiz queries, admin restrictions remaining server-side, and quiz answer keys withheld from the client before submission. Existing HTML routes remain intact.
 
-Security requirements:
-- Keep `GROQ_API_KEY`, `DATABASE_URL`, and `SECRET_KEY` exclusively on the server.
-- Keep authorization and validation in Flask.
-- Configure CORS narrowly if frontend and backend use separate origins; use secure cookie/session settings appropriate to deployment.
-- Do not expose admin data or allow client-supplied user IDs to determine ownership.
-- Preserve existing database tables and records; no destructive migration or database reset.
+## Before production cutover
+1. Run local API smoke tests using a test account and verify login/logout/session behavior.
+2. Test upload/extraction, AI chat, quiz generation/scoring, history review, and study tools.
+3. Verify the existing Neon records remain present and unchanged.
+4. Configure a stable `SECRET_KEY` on every backend deployment.
+5. Prefer same-origin frontend/API routing. For separate origins, configure exact `FRONTEND_ORIGIN`, HTTPS, and appropriate cookie settings.
+6. Vercel's `/tmp` is temporary; uploaded source files are removed after extraction in this prototype, while extracted text is stored in the database. Review privacy, size limits, and OCR provider availability.
+7. Keep the old Flask UI available until the React feature set passes end-to-end checks.
 
-## Vercel and uploads
-Vercel's `/tmp` is temporary and must not be treated as durable document storage. Confirm current document behavior and move persistent uploaded files to suitable external object storage before depending on uploaded files across invocations.
-
-## Local development
-1. Install Python requirements and configure a development `.env` as documented in the existing project README.
-2. Start Flask on port 5000.
-3. In `frontend/`, run `npm install` and `npm run dev`.
-4. Keep production credentials out of frontend environment variables. Only public configuration such as `VITE_API_BASE_URL` belongs in the frontend.
-
-## Acceptance gate before cutover
-Test authentication and session expiry, tutor responses, upload/extraction, quiz counts and scoring, history/review, study tools, authorization boundaries, responsive layout, and existing student records. Keep the current deployment available until the new frontend is proven stable.
+## Verification limitation
+This build workspace did not have all Python requirements installed, and `npm install` timed out. The backend source passed `py_compile`, but this is not a substitute for runtime integration tests or a Vite production build.

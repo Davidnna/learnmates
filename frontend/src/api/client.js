@@ -1,32 +1,54 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+let csrfToken = '';
 
-/**
- * Shared HTTP helper for the future Flask JSON API.
- * The current Flask application primarily serves HTML forms, so feature API
- * methods should be wired only after the corresponding authenticated JSON
- * endpoints have been added and tested. Never put Groq/database secrets here.
- */
-export async function apiRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    ...options,
-    headers: {
-      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(options.headers || {}),
-    },
-  });
+async function readPayload(response) {
   const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json')
-    ? await response.json()
-    : await response.text();
+  return contentType.includes('application/json') ? response.json() : response.text();
+}
+
+async function ensureCsrf() {
+  if (csrfToken) return csrfToken;
+  const response = await fetch(`${API_BASE}/api/session`, { credentials: 'include' });
+  const payload = await readPayload(response);
+  if (response.ok && payload && typeof payload === 'object') csrfToken = payload.csrf_token || '';
+  return csrfToken;
+}
+
+export async function apiRequest(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...(options.headers || {}) };
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const token = await ensureCsrf();
+    if (token) headers['X-CSRF-Token'] = token;
+  }
+  const response = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...options, method, headers });
+  const payload = await readPayload(response);
   if (!response.ok) {
     const message = typeof payload === 'object' && payload?.error ? payload.error : `Request failed (${response.status})`;
+    if (response.status === 400 && /security token/i.test(message)) csrfToken = '';
     throw new Error(message);
   }
   return payload;
 }
 
+const json = (method, body) => ({ method, body: JSON.stringify(body) });
 export const api = {
+  session: async () => { const result = await apiRequest('/api/session'); csrfToken = result.csrf_token || csrfToken; return result; },
+  login: (data) => apiRequest('/api/auth/login', json('POST', data)),
+  register: (data) => apiRequest('/api/auth/register', json('POST', data)),
+  logout: () => apiRequest('/api/auth/logout', json('POST', {})),
+  dashboard: () => apiRequest('/api/dashboard'),
+  materials: () => apiRequest('/api/materials'),
+  uploadMaterial: (formData) => apiRequest('/api/materials', { method: 'POST', body: formData }),
+  deleteMaterial: (id) => apiRequest(`/api/materials/${id}/delete`, json('POST', {})),
+  chatHistory: () => apiRequest('/api/chat'),
+  sendChat: (data) => apiRequest('/api/chat', json('POST', data)),
+  activeQuiz: () => apiRequest('/api/quiz/active'),
+  generateQuiz: (data) => apiRequest('/api/quiz/generate', json('POST', data)),
+  submitQuiz: (answers) => apiRequest('/api/quiz/submit', json('POST', { answers })),
+  quizHistory: () => apiRequest('/api/quiz-history'),
+  quizAttempt: (id) => apiRequest(`/api/quiz-history/${id}`),
+  studyToolDocs: () => apiRequest('/api/study-tools'),
+  generateStudyTool: (data) => apiRequest('/api/study-tools', json('POST', data)),
   health: () => apiRequest('/health'),
-  // Add auth, tutor, documents, quiz and progress calls as Flask JSON routes land.
 };
