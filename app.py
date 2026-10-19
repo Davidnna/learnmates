@@ -14,8 +14,14 @@ import bleach
 
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Vercel's deployed application directory is read-only. Use its temporary
+# writable filesystem for the short-lived upload used during text extraction.
+# Render/local deployments keep the project-local uploads directory by default.
+UPLOAD_DIR = Path(os.getenv(
+    "UPLOAD_DIR",
+    "/tmp/learnmeets_uploads" if os.getenv("VERCEL") else str(BASE_DIR / "uploads"),
+))
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTENSIONS = {"pdf", "txt", "png", "jpg", "jpeg", "webp"}
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
