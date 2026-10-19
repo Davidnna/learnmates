@@ -26,6 +26,9 @@ export async function apiRequest(path, options = {}) {
   if (!response.ok) {
     const message = typeof payload === 'object' && payload?.error ? payload.error : `Request failed (${response.status})`;
     if (response.status === 400 && /security token/i.test(message)) csrfToken = '';
+    if (response.status === 401 && typeof window !== 'undefined' && !path.startsWith('/api/auth/')) {
+      window.dispatchEvent(new CustomEvent('learnmeets:unauthorized'));
+    }
     throw new Error(message);
   }
   return payload;
