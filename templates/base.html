@@ -25,7 +25,6 @@
       <a href="{{ url_for('materials') }}" {% if request.endpoint in ['materials', 'delete_material'] %}aria-current="page"{% endif %}>My Notes</a>
       <a href="{{ url_for('study_tools') }}" {% if request.endpoint == 'study_tools' %}aria-current="page"{% endif %}>Study Tools</a>
       <a href="{{ url_for('quiz') }}" {% if request.endpoint == 'quiz' %}aria-current="page"{% endif %}>Practice Quiz</a>
-      <a href="{{ url_for('quiz_history') }}" {% if request.endpoint in ['quiz_history', 'quiz_history_detail'] %}aria-current="page"{% endif %}>Quiz History</a>
       {% if current_user.role == 'admin' %}<a href="{{ url_for('admin') }}" {% if request.endpoint == 'admin' %}aria-current="page"{% endif %}>Admin</a>{% endif %}
       <form class="inline-form" method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-button" type="submit">Log out</button></form>
     {% else %}
@@ -105,18 +104,28 @@
   });
   const quizTimer = document.querySelector('#quiz-timer');
   if (quizTimer) {
-    const output = quizTimer.querySelector('strong');
+    const output = quizTimer.querySelector('[data-timer-value]');
+    const progress = quizTimer.querySelector('[data-timer-progress]');
+    const status = quizTimer.querySelector('[data-timer-status]');
     const answerForm = document.querySelector('.quiz-answer-form');
     const deadline = Number(quizTimer.dataset.deadline || 0) * 1000;
+    const duration = Math.max(1, Number(quizTimer.dataset.duration || 1));
     let submitted = false;
     const updateTimer = () => {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       const minutes = Math.floor(remaining / 60).toString().padStart(2, '0');
       const seconds = (remaining % 60).toString().padStart(2, '0');
+      const fraction = Math.max(0, Math.min(100, (remaining / duration) * 100));
       if (output) output.textContent = minutes + ':' + seconds;
+      if (progress) progress.style.width = fraction + '%';
+      if (remaining <= 60) {
+        quizTimer.classList.add('timer-warning');
+        if (status) status.textContent = remaining <= 0 ? 'Time is up — submitting your answers' : 'Less than one minute remaining';
+      } else if (status) {
+        status.textContent = 'Time remaining';
+      }
       if (remaining <= 0 && !submitted && answerForm) {
         submitted = true;
-        answerForm.querySelectorAll('input[type="radio"]:checked');
         const action = answerForm.querySelector('input[name="action"]');
         if (action) action.value = 'submit';
         answerForm.requestSubmit();
