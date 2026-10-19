@@ -160,3 +160,8 @@ No OpenAI API key is required for Ollama. Response speed depends on your compute
 ## Render URL note
 
 The default `onrender.com` hostname is based on the Render service name. To try to use `https://learnmates.onrender.com`, open the existing web service in the Render Dashboard and rename it to `learnmates` if that name is available. Render may keep the old URL or require creating a new service depending on the service state; verify the hostname shown in Settings before sharing it. The requested name is not guaranteed to be available.
+
+
+## Temporary quiz diagnostics (remove after troubleshooting)
+
+To show the initial and repair AI response when quiz generation fails, set the Render environment variable `QUIZ_DEBUG_ERRORS` to `true` and redeploy. The diagnostics panel appears only on the authenticated quiz page after a failed generation and shows at most 1,200 characters per response. It may expose provider error details or text returned by the model, so use it only temporarily. After diagnosing the issue, set `QUIZ_DEBUG_ERRORS` to `false` (or remove the variable) and redeploy. This does not change the database or student records.

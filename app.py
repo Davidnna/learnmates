@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import wraps
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request, flash, abort, session, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, abort, session, jsonify, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -366,6 +366,11 @@ def ai_response(prompt, instructions, max_tokens=None, json_mode=False):
                 temporary = isinstance(exc, (APIConnectionError, APITimeoutError)) or (isinstance(exc, APIStatusError) and exc.status_code in {429, 500, 502, 503, 504})
             except Exception:
                 temporary = False
+            if os.getenv("QUIZ_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}:
+                # TEMPORARY: only enabled by an explicit deployment environment flag.
+                # Bound the detail and avoid ever returning request headers or API keys.
+                detail = re.sub(r"(?i)(authorization|api[_ -]?key|bearer)\s*[:=]?\s*[^\s,;]+", r"\1=[REDACTED]", str(exc))
+                return "[TEMP QUIZ DEBUG - GROQ API ERROR] " + detail[:1200]
             if temporary:
                 return ("The AI service is temporarily busy or its usage limit may have been reached. "
                         "Please wait a moment and try again. Your account and saved study notes have not been deleted.")
@@ -649,6 +654,12 @@ def generate_questions(topic, source_text="", count=10):
         "I couldn't complete", "The AI tutor is temporarily",
     )
     if raw.startswith(error_prefixes):
+        if os.getenv("QUIZ_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}:
+            g.quiz_debug_failure = {
+                "reason": "The AI provider returned an error message instead of quiz JSON.",
+                "first_response": (raw or "")[:1200],
+                "repair_response": "",
+            }
         return []
 
     # Keep good questions from a nearly complete response and ask only for the
@@ -722,6 +733,15 @@ def generate_questions(topic, source_text="", count=10):
         for item in valid:
             item["_generated_by_ai"] = True
         return valid[:count]
+
+    # TEMPORARY diagnostics are available only when QUIZ_DEBUG_ERRORS=true.
+    # Keep previews bounded and request-scoped; never put document text or diagnostics in a cookie/session.
+    if os.getenv("QUIZ_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}:
+        g.quiz_debug_failure = {
+            "reason": "The AI response did not pass quiz JSON/schema/source-evidence validation.",
+            "first_response": (raw or "")[:1200],
+            "repair_response": (repair_raw or "")[:1200] if "repair_raw" in locals() else "",
+        }
 
     # Do not fall back to repetitive sentence-recognition items: a failed generation
     # should be reported honestly rather than presented as a useful subject quiz.
@@ -1021,7 +1041,11 @@ def quiz():
         except Exception:
             flash("Your quiz session expired. Please generate a new quiz.", "error")
     docs = LearningDocument.query.filter_by(owner_id=current_user.id).all()
-    return render_template("quiz.html", questions=questions, topic=topic, docs=docs, quiz_source_label=quiz_source_label, question_count=question_count)
+    quiz_debug_enabled = os.getenv("QUIZ_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}
+    quiz_debug_failure = getattr(g, "quiz_debug_failure", None) if quiz_debug_enabled else None
+    return render_template("quiz.html", questions=questions, topic=topic, docs=docs,
+                           quiz_source_label=quiz_source_label, question_count=question_count,
+                           quiz_debug_enabled=quiz_debug_enabled, quiz_debug_failure=quiz_debug_failure)
 
 
 @app.route("/study-tools", methods=["GET", "POST"])
