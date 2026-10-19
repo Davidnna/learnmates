@@ -74,7 +74,7 @@ a { text-underline-offset: .18em; }
 .topbar nav > a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 2px; }
 .topbar nav .nav-button { min-height: 44px; padding: 8px 2px; }
 
-/* LearnMates brand and responsive navigation polish. */
+/* LearnMeet brand and responsive navigation polish. */
 .topbar {
   position: relative;
   z-index: 20;

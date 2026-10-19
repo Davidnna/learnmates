@@ -1,4 +1,4 @@
-# LearnMates AI — zero-cost public pilot deployment
+# LearnMeet AI — zero-cost public pilot deployment
 
 This configuration is intended for a small academic pilot, not a high-availability production service. Free hosting and AI quotas can sleep, pause, change, or be exhausted.
 

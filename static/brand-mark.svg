@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="LearnMates AI mark">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="LearnMeet AI mark">
   <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8068f0"/><stop offset="1" stop-color="#5942c5"/></linearGradient></defs>
   <rect width="48" height="48" rx="14" fill="url(#g)"/>
   <path d="M10 13.5c5-1.5 9.6-.5 14 2.8v19c-4.4-3.3-9-4.3-14-2.8z" fill="#fff" fill-opacity=".96"/>

@@ -10,7 +10,7 @@
     {% for m in history %}
     <article class="chat-message {{ 'user-message' if m.role == 'user' else 'assistant-message' }}">
       <div class="message-avatar" aria-hidden="true">{{ 'You' if m.role == 'user' else '✦' }}</div>
-      <div class="message-body"><div class="message-name">{{ 'You' if m.role == 'user' else 'LearnMates Tutor' }}</div><div class="message-content">{{ m.content|markdown|safe }}</div></div>
+      <div class="message-body"><div class="message-name">{{ 'You' if m.role == 'user' else 'LearnMeet Tutor' }}</div><div class="message-content">{{ m.content|markdown|safe }}</div></div>
     </article>
     {% endfor %}
   </div>

@@ -1,4 +1,4 @@
-# LearnMates AI — Requirements Traceability and Verification
+# LearnMeet AI — Requirements Traceability and Verification
 
 This checklist records the intended scope of the current prototype. It does not replace the departmental project specification or a complete manual test session.
 
