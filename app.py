@@ -458,34 +458,55 @@ def _normalise_text(value):
 
 
 def _extract_quiz_items(raw):
-    """Accept common valid JSON response shapes without accepting non-JSON prose."""
+    """Extract a quiz array from JSON, including JSON surrounded by model chatter.
+
+    Some model responses contain a valid JSON object before the actual quiz payload
+    (for example, a short metadata object). Keep scanning candidates until a known
+    quiz-array shape is found instead of stopping at the first parseable object.
+    """
     if not isinstance(raw, str) or not raw.strip():
         return None
     text = raw.strip()
-    # Some models wrap otherwise valid JSON in Markdown fences despite instructions.
     text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.I)
     text = re.sub(r"\s*```$", "", text)
+    decoder = json.JSONDecoder()
+
+    def quiz_items(payload):
+        if isinstance(payload, list):
+            # Avoid treating unrelated JSON arrays as quiz items.
+            if payload and all(isinstance(item, dict) for item in payload):
+                if any("question" in item or "stem" in item for item in payload):
+                    return payload
+            return None
+        if isinstance(payload, dict):
+            for key in ("questions", "quiz", "items", "data"):
+                value = payload.get(key)
+                if isinstance(value, list):
+                    if not value or all(isinstance(item, dict) for item in value):
+                        return value
+        return None
+
     try:
         payload = json.loads(text)
+        found = quiz_items(payload)
+        if found is not None:
+            return found
     except (ValueError, TypeError):
-        # Find a JSON array/object if the provider adds a short preamble or suffix.
-        payload = None
-        decoder = json.JSONDecoder()
-        for index, char in enumerate(text):
-            if char not in "[{":
-                continue
-            try:
-                candidate, _ = decoder.raw_decode(text[index:])
-                payload = candidate
-                break
-            except (ValueError, TypeError):
-                continue
-    if isinstance(payload, dict):
-        for key in ("questions", "quiz", "items", "data"):
-            if isinstance(payload.get(key), list):
-                return payload[key]
-        return None
-    return payload if isinstance(payload, list) else None
+        pass
+
+    # Search every possible object/array start. A candidate may parse successfully
+    # but not be the quiz, so continue until a recognized question list is found.
+    for index, char in enumerate(text):
+        if char not in "[{":
+            continue
+        try:
+            candidate, _ = decoder.raw_decode(text[index:])
+        except (ValueError, TypeError):
+            continue
+        found = quiz_items(candidate)
+        if found is not None:
+            return found
+    return None
 
 
 def _coerce_answer(answer, options):
@@ -645,8 +666,10 @@ def generate_questions(topic, source_text="", count=10):
         return valid
 
     app.logger.warning(
-        "AI quiz output validation failed (attempt=1, requested=%s, parsed_items=%s, accepted_items=%s, source_grounded=%s)",
-        count, len(items) if isinstance(items, list) else 0, len(valid), bool(source_text)
+        "AI quiz output validation failed (attempt=1, requested=%s, parsed_items=%s, accepted_items=%s, source_grounded=%s, raw_chars=%s, starts_with_json=%s, starts_with_fence=%s)",
+        count, len(items) if isinstance(items, list) else 0, len(valid), bool(source_text),
+        len(raw or ""), (raw or "").lstrip().startswith(("{", "[")),
+        (raw or "").lstrip().startswith("```")
     )
     missing = count - len(valid)
     if missing > 0:
@@ -688,9 +711,11 @@ def generate_questions(topic, source_text="", count=10):
                 if len(valid) == count:
                     break
             app.logger.warning(
-                "AI quiz repair validation (requested_missing=%s, parsed_items=%s, accepted_items=%s, total_ready=%s)",
+                "AI quiz repair validation (requested_missing=%s, parsed_items=%s, accepted_items=%s, total_ready=%s, raw_chars=%s, starts_with_json=%s, starts_with_fence=%s)",
                 missing, len(repair_items) if isinstance(repair_items, list) else 0,
-                len(repair_valid), len(valid)
+                len(repair_valid), len(valid), len(repair_raw or ""),
+                (repair_raw or "").lstrip().startswith(("{", "[")),
+                (repair_raw or "").lstrip().startswith("```")
             )
 
     if len(valid) == count:
