@@ -274,7 +274,6 @@ def _chat_completion_with_retries(client, model, messages, temperature=0.3, atte
                 if reasoning_effort not in {"low", "medium", "high"}:
                     reasoning_effort = "low"
                 request_args["reasoning_effort"] = reasoning_effort
-                request_args["include_reasoning"] = False
             if response_format is not None:
                 request_args["response_format"] = response_format
             return client.chat.completions.create(**request_args)
