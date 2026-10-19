@@ -24,7 +24,8 @@
       <a href="{{ url_for('chat') }}" {% if request.endpoint == 'chat' %}aria-current="page"{% endif %}>AI Tutor</a>
       <a href="{{ url_for('materials') }}" {% if request.endpoint in ['materials', 'delete_material'] %}aria-current="page"{% endif %}>My Notes</a>
       <a href="{{ url_for('study_tools') }}" {% if request.endpoint == 'study_tools' %}aria-current="page"{% endif %}>Study Tools</a>
-      <a href="{{ url_for('quiz') }}" {% if request.endpoint in ['quiz', 'quiz_result'] %}aria-current="page"{% endif %}>Practice Quiz</a>
+      <a href="{{ url_for('quiz') }}" {% if request.endpoint == 'quiz' %}aria-current="page"{% endif %}>Practice Quiz</a>
+      <a href="{{ url_for('quiz_history') }}" {% if request.endpoint in ['quiz_history', 'quiz_history_detail'] %}aria-current="page"{% endif %}>Quiz History</a>
       {% if current_user.role == 'admin' %}<a href="{{ url_for('admin') }}" {% if request.endpoint == 'admin' %}aria-current="page"{% endif %}>Admin</a>{% endif %}
       <form class="inline-form" method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-button" type="submit">Log out</button></form>
     {% else %}
@@ -38,6 +39,7 @@
   </nav>
 </header>
 
+<div id="global-loading" class="global-loading" hidden role="status" aria-live="polite" aria-atomic="true"><div class="loading-card"><span class="loading-spinner" aria-hidden="true"></span><strong id="global-loading-message">Working on your request…</strong><span class="muted">Please keep this page open.</span></div></div>
 <main id="main-content" class="container" tabindex="-1">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}<div class="flash-stack" role="status" aria-live="polite" aria-atomic="true">{% for category, message in messages %}<div class="flash {{ category }}" role="{% if category == 'error' %}alert{% else %}status{% endif %}" aria-live="{% if category == 'error' %}assertive{% else %}polite{% endif %}">{{ message }}</div>{% endfor %}</div>{% endif %}
@@ -84,6 +86,44 @@
     window.addEventListener('resize', () => {
       if (window.innerWidth > 1100) setMenuOpen(false);
     });
+  }
+  const loadingLayer = document.querySelector('#global-loading');
+  const loadingMessage = document.querySelector('#global-loading-message');
+  document.querySelectorAll('form[method="post"]:not([data-no-loading])').forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!loadingLayer || form.dataset.loadingStarted === 'true') return;
+      form.dataset.loadingStarted = 'true';
+      if (loadingMessage) loadingMessage.textContent = form.dataset.loadingMessage || 'Working on your request…';
+      loadingLayer.hidden = false;
+      const submitter = event.submitter;
+      if (submitter && submitter.tagName === 'BUTTON') {
+        submitter.dataset.originalText = submitter.textContent;
+        submitter.disabled = true;
+        submitter.classList.add('is-loading');
+      }
+    });
+  });
+  const quizTimer = document.querySelector('#quiz-timer');
+  if (quizTimer) {
+    const output = quizTimer.querySelector('strong');
+    const answerForm = document.querySelector('.quiz-answer-form');
+    const deadline = Number(quizTimer.dataset.deadline || 0) * 1000;
+    let submitted = false;
+    const updateTimer = () => {
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      const minutes = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const seconds = (remaining % 60).toString().padStart(2, '0');
+      if (output) output.textContent = minutes + ':' + seconds;
+      if (remaining <= 0 && !submitted && answerForm) {
+        submitted = true;
+        answerForm.querySelectorAll('input[type="radio"]:checked');
+        const action = answerForm.querySelector('input[name="action"]');
+        if (action) action.value = 'submit';
+        answerForm.requestSubmit();
+      }
+    };
+    updateTimer();
+    window.setInterval(updateTimer, 1000);
   }
   const chatTranscript = document.querySelector('.chat-transcript');
   if (chatTranscript) chatTranscript.scrollTop = chatTranscript.scrollHeight;
