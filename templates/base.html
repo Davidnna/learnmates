@@ -7,14 +7,14 @@
   <meta name="theme-color" content="#6d55dc">
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='brand-mark.svg') }}">
-  <meta name="description" content="LearnMeet AI student learning assistance system">
-  <title>{% block title %}LearnMeet AI{% endblock %} · Student Learning Assistant</title>
+  <meta name="description" content="LearnMeets AI student learning assistance system">
+  <title>{% block title %}LearnMeets AI{% endblock %} · Student Learning Assistant</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
 <header class="topbar">
-  <a class="brand" href="{{ url_for('index') }}" aria-label="LearnMeet AI home"><img class="brand-icon" src="{{ url_for('static', filename='brand-mark.svg') }}" alt="" width="38" height="38"><span class="brand-word">LearnMeet</span><span class="ai-label">AI</span></a>
+  <a class="brand" href="{{ url_for('index') }}" aria-label="LearnMeets AI home"><img class="brand-icon" src="{{ url_for('static', filename='brand-mark.svg') }}" alt="" width="38" height="38"><span class="brand-word">LearnMeets</span><span class="ai-label">AI</span></a>
   <button class="menu-toggle" type="button" aria-controls="primary-navigation" aria-expanded="false">
     <span class="menu-toggle-icon" aria-hidden="true">☰</span><span class="menu-toggle-label">Menu</span>
   </button>
@@ -46,12 +46,12 @@
   {% block content %}{% endblock %}
 </main>
 <footer class="footer">
-  <div class="footer-links" aria-label="LearnMeet information links">
+  <div class="footer-links" aria-label="LearnMeets information links">
     <a href="{{ url_for('about') }}">About</a><a href="{{ url_for('features') }}">Features</a>
     <a href="{{ url_for('how_it_works') }}">How it works</a><a href="{{ url_for('faq') }}">FAQ</a>
     <a href="{{ url_for('privacy') }}">Privacy</a>
   </div>
-  LearnMeet AI · Student Learning Assistance System · {{ current_year }}<br><span>AI-generated content can be incorrect. Verify important academic information with trusted course materials.</span>
+  LearnMeets AI · Student Learning Assistance System · {{ current_year }}<br><span>AI-generated content can be incorrect. Verify important academic information with trusted course materials.</span>
 </footer>
 <script>
 (function () {

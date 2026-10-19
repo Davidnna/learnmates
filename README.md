@@ -1,4 +1,4 @@
-# LearnMeet AI — Student Learning Assistance System
+# LearnMeets AI — Student Learning Assistance System
 
 Version 6 update: adds local Ollama support and a responsive mobile navigation menu.
 
@@ -152,7 +152,7 @@ The default hosted provider is Groq, using its OpenAI-compatible Chat Completion
 1. Install Ollama for Windows from https://ollama.com/download/windows.
 2. Open a new PowerShell terminal and download a small model: `ollama pull qwen2.5:3b`. This download can take several minutes and uses disk space.
 3. In the project `.env` file, set `AI_PROVIDER=ollama`, `OLLAMA_BASE_URL=http://localhost:11434/v1`, and `OLLAMA_MODEL=qwen2.5:3b`.
-4. Restart LearnMeet AI (`Ctrl+C`, then `python app.py`). Keep Ollama running in the background.
+4. Restart LearnMeets AI (`Ctrl+C`, then `python app.py`). Keep Ollama running in the background.
 5. Check the model is installed with `ollama list`.
 
 No OpenAI API key is required for Ollama. Response speed depends on your computer's RAM/CPU/GPU. If you prefer hosted OpenAI, set `AI_PROVIDER=openai` and configure `OPENAI_API_KEY`. Never commit `.env` or share API keys.

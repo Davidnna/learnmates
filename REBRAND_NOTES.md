@@ -1,6 +1,6 @@
-# LearnMeet AI Rebrand Notes
+# LearnMeets AI Rebrand Notes
 
-This update changes the visible product name from LearnMates AI to LearnMeet AI across the application templates, browser title and description, tutor label, logo accessibility label, README, deployment notes, and requirements traceability document.
+This update changes the visible product name from LearnMates AI to LearnMeets AI across the application templates, browser title and description, tutor label, logo accessibility label, README, deployment notes, and requirements traceability document.
 
 ## Intentionally unchanged
 - Flask routes, backend logic, AI provider integration, and quiz generation logic
