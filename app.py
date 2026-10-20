@@ -1101,6 +1101,41 @@ def logout():
     return redirect(url_for("index"))
 
 
+@app.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    """Manage the signed-in user's display name and password in the Flask UI."""
+    if request.method == "POST":
+        action = (request.form.get("action") or "profile").strip()
+        if action == "profile":
+            name = (request.form.get("name") or "").strip()[:100]
+            if not name:
+                flash("Your name cannot be empty.", "error")
+            else:
+                current_user.name = name
+                db.session.commit()
+                flash("Your profile has been updated.", "success")
+                return redirect(url_for("account"))
+        elif action == "password":
+            current_password = request.form.get("current_password", "")
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+            if not check_password_hash(current_user.password_hash, current_password):
+                flash("Your current password is incorrect.", "error")
+            elif len(new_password) < 8:
+                flash("Your new password must contain at least 8 characters.", "error")
+            elif new_password != confirm_password:
+                flash("The new passwords do not match.", "error")
+            else:
+                current_user.password_hash = generate_password_hash(new_password)
+                db.session.commit()
+                flash("Your password has been changed.", "success")
+                return redirect(url_for("account"))
+        else:
+            abort(400)
+    return render_template("account.html")
+
+
 @app.route("/dashboard")
 @login_required
 def dashboard():

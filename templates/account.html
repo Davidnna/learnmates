@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Account management{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <p class="eyebrow">YOUR ACCOUNT</p>
+  <h1>Account management</h1>
+  <p>Update your personal details and keep your account secure.</p>
+</section>
+<div class="account-page-grid">
+  <section class="card account-summary">
+    <div class="account-avatar" aria-hidden="true">{{ (current_user.name or 'S')[:1]|upper }}</div>
+    <h2>{{ current_user.name }}</h2>
+    <p>{{ current_user.email }}</p>
+    <span class="account-role">{{ current_user.role|title }} account</span>
+    <p class="muted">Profile-photo uploads are not enabled yet because this deployment needs persistent media storage.</p>
+  </section>
+  <section class="card">
+    <h2>Personal information</h2>
+    <p>Update the name displayed across LearnMeets AI.</p>
+    <form method="post" class="stack-form" data-loading-message="Saving your profile…">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="profile">
+      <label for="account-name">Full name</label>
+      <input id="account-name" name="name" type="text" value="{{ current_user.name }}" maxlength="100" autocomplete="name" required>
+      <label for="account-email">Email address</label>
+      <input id="account-email" type="email" value="{{ current_user.email }}" readonly aria-readonly="true">
+      <p class="muted">Email-address changes are not available yet.</p>
+      <button class="button button-primary" type="submit">Save profile</button>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Change password</h2>
+    <p>Use at least 8 characters. Your current password is required.</p>
+    <form method="post" class="stack-form" data-loading-message="Updating your password…">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="password">
+      <label for="current-password">Current password</label>
+      <input id="current-password" name="current_password" type="password" autocomplete="current-password" required>
+      <label for="new-password">New password</label>
+      <input id="new-password" name="new_password" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="confirm-password">Confirm new password</label>
+      <input id="confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" required>
+      <button class="button button-primary" type="submit">Change password</button>
+    </form>
+  </section>
+</div>
+<style>
+.page-heading{margin:1.5rem 0 1.25rem}.eyebrow{letter-spacing:.12em;font-size:.78rem;font-weight:700;color:var(--accent,#6d55dc)}
+.account-page-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-bottom:2rem}.account-page-grid .card{padding:1.25rem;border:1px solid var(--border-color,#e5e2ee);border-radius:1rem;background:var(--card-bg,#fff);min-width:0}.account-summary{grid-row:span 2}.account-avatar{display:grid;place-items:center;width:4rem;height:4rem;border-radius:50%;background:#eee9ff;color:#5a43c4;font-size:1.6rem;font-weight:800}.account-role{display:inline-block;padding:.3rem .65rem;border-radius:999px;background:#f0edff;color:#5942bd;font-size:.82rem}.stack-form{display:grid;gap:.65rem;margin-top:1rem}.stack-form input{width:100%;box-sizing:border-box;padding:.75rem;border:1px solid var(--border-color,#d8d4e4);border-radius:.55rem;background:var(--input-bg,#fff);color:inherit}.stack-form button{justify-self:start;margin-top:.35rem}.muted{color:var(--muted,#6d6a78);font-size:.9rem;line-height:1.5}@media(max-width:720px){.account-page-grid{grid-template-columns:1fr}.account-summary{grid-row:auto}}
+</style>
+{% endblock %}
