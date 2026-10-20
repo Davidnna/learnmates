@@ -1552,6 +1552,33 @@ def api_login():
     return jsonify(user=_api_user(user))
 
 
+@app.post("/api/account/profile")
+@login_required
+def api_account_profile():
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name", "")).strip()[:100]
+    if not name:
+        return jsonify(error="Your name cannot be empty."), 400
+    current_user.name = name
+    db.session.commit()
+    return jsonify(user=_api_user(current_user))
+
+
+@app.post("/api/account/password")
+@login_required
+def api_account_password():
+    data = request.get_json(silent=True) or {}
+    current_password = str(data.get("current_password", ""))
+    new_password = str(data.get("new_password", ""))
+    if not check_password_hash(current_user.password_hash, current_password):
+        return jsonify(error="Your current password is incorrect."), 400
+    if len(new_password) < 8:
+        return jsonify(error="Your new password must contain at least 8 characters."), 400
+    current_user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+    return jsonify(ok=True)
+
+
 @app.post("/api/auth/logout")
 @login_required
 def api_logout():
