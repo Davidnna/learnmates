@@ -1,31 +1,34 @@
-# LearnMeets AI React frontend — integration milestone 2
+# LearnMeets AI — React application
 
-React + Vite interface connected to the existing Flask application through authenticated JSON endpoints. The original Flask HTML routes remain available as a rollback path.
+This is the primary browser application. React + Vite provides the public pages, authentication screens, dashboard, AI tutor, study materials, quizzes, quiz history, study tools, progress, settings, and account management. Flask remains the backend for authentication, sessions, CSRF validation, database access, file processing, and AI features.
 
-## Local development
+## Run locally
 
-1. In the project root, activate your Python virtual environment and install the project requirements:
-   `python -m pip install -r requirements.txt`
-2. Configure `.env` with your existing `DATABASE_URL`, a stable `SECRET_KEY`, and the AI provider key. Do not commit `.env`.
-3. Start Flask from the project root: `python app.py` (default port 5000).
-4. In `frontend/`, run `npm install` and `npm run dev`. Open `http://localhost:5173`. The Vite proxy forwards `/api` requests to Flask.
+1. From the project root, create/activate your Python environment and install `requirements.txt`.
+2. Configure the root `.env` using your existing database URL and secrets.
+3. Start the Flask API: `python app.py`.
+4. In this folder, copy `.env.example` to `.env.local` if needed, leave `VITE_API_BASE_URL` blank for the Vite proxy, then run `npm install` and `npm run dev`.
+5. Open the Vite URL shown in the terminal (normally `http://localhost:5173`).
 
-## Connected features
+## Deploy React to Vercel
 
-- Session-aware registration and login, with a session CSRF token.
-- Dashboard metrics and recent quiz attempts.
-- AI tutor chat with optional document grounding.
-- Document upload, extracted-text listing, and owner-checked deletion.
-- Quiz generation, server-side active quiz storage, submission and scoring. Correct answers are kept on the server until submission.
-- Quiz history and review.
-- Summary and flashcard generation from an owned learning material.
+- Set the Vercel project root directory to `frontend`.
+- Build command: `npm run build`. Output directory: `dist`.
+- Set `VITE_API_BASE_URL` to the full HTTPS URL of the Flask API on Render.
+- Keep the SPA rewrite in `vercel.json` so client-side routes such as `/account` and `/history` load correctly.
 
-## Deployment notes
+## Configure Flask on Render
 
-Prefer serving the frontend and API on the same site or through a same-origin reverse proxy. If using separate origins, set `VITE_API_BASE_URL` in `frontend/.env.local` to the Flask API origin and set `FRONTEND_ORIGIN` on Flask to the exact frontend origin. For genuinely cross-site cookies, set `COOKIE_SECURE=true` and `SESSION_COOKIE_SAMESITE=None`; use HTTPS on both origins. Do not use wildcard CORS with credentialed sessions. Browser third-party-cookie restrictions can still affect cross-site sessions, so same-origin routing is preferred.
+Set these server-side environment variables:
 
-Set a stable secret on the server. Keep `DATABASE_URL`, `GROQ_API_KEY`, and `SECRET_KEY` server-side; never prefix them with `VITE_`. Preserve the existing Neon database and records. This package does not reset or migrate existing tables.
+- `REACT_FRONTEND_URL`: exact public Vercel origin, e.g. `https://your-app.vercel.app` (no trailing slash). This redirects old Flask HTML page URLs to their React routes.
+- `FRONTEND_ORIGIN`: the same exact Vercel origin, for credentialed API CORS.
+- `COOKIE_SECURE=true`
+- `SESSION_COOKIE_SAMESITE=None`
+- Existing `SECRET_KEY`, `DATABASE_URL`, AI provider keys, and other current production settings.
 
-## Validation status
+Use HTTPS for both services. Do not use wildcard CORS with credentialed sessions. Some browsers block third-party cookies across unrelated Vercel/Render domains; if login sessions fail in a browser, use a same-origin custom domain/reverse proxy for the API rather than weakening security.
 
-The Flask source passed Python syntax compilation in the build workspace. A full Flask runtime/API test and Vite production build could not be completed here because the environment lacks several Python dependencies and `npm install` timed out. Run the verification checklist in `INTEGRATION_MILESTONE2.md` in your local project before changing production routing.
+## Existing data and rollback
+
+The migration does not reset the database or delete user records. Flask retains its API and legacy HTML templates; setting `REACT_FRONTEND_URL` enables redirects so React is the primary browser UI. To temporarily restore legacy Flask pages, unset `REACT_FRONTEND_URL` and redeploy the backend. Keep `.env` and production secrets out of Git.

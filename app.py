@@ -88,6 +88,36 @@ def protect_state_changing_requests():
                 return jsonify(error="Your security token is missing or expired. Refresh the page and try again."), 400
             abort(400, description="The form security token is missing or expired. Refresh the page and try again.")
 
+@app.before_request
+def route_legacy_pages_to_react():
+    """Make the React SPA the primary browser UI when configured.
+
+    Flask remains the API/backend and retains the legacy HTML routes as a
+    rollback path when REACT_FRONTEND_URL is unset. API, health, static, and
+    admin requests are never redirected by this handler.
+    """
+    frontend_url = os.getenv("REACT_FRONTEND_URL", "").strip().rstrip("/")
+    if not frontend_url or request.method not in {"GET", "HEAD"}:
+        return None
+    if request.path.startswith(("/api/", "/static/")) or request.path in {"/health", "/admin"}:
+        return None
+
+    route_map = {
+        "/": "/", "/about": "/about", "/features": "/features",
+        "/how-it-works": "/how-it-works", "/faq": "/faq", "/privacy": "/privacy",
+        "/login": "/login", "/register": "/register", "/account": "/account",
+        "/dashboard": "/dashboard", "/chat": "/tutor", "/materials": "/materials",
+        "/quiz": "/quizzes", "/quiz-history": "/history", "/study-tools": "/study-tools",
+    }
+    target_path = route_map.get(request.path)
+    if target_path is None:
+        return None
+    target = f"{frontend_url}{target_path}"
+    if request.query_string:
+        target = f"{target}?{request.query_string.decode('latin-1')}"
+    return redirect(target, code=302)
+
+
 @app.after_request
 def configure_react_api_cors(response):
     """Optional exact-origin CORS for a separately hosted React frontend."""
